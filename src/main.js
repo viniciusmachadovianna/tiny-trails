@@ -14,6 +14,9 @@ const ROW_BEHIND = 15;
 const MAX_BACK = 4;
 const ROW_WIDTH = 60;
 const WRAP = ROW_WIDTH / 2;
+const BULLET_SPEED = 18;
+const BULLET_RANGE = 12;
+const SHOOT_COOLDOWN = 0.25;
 const arenaRoot = document.querySelector("#game");
 
 const vectors = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
@@ -21,6 +24,8 @@ const cell = { x: 0, z: 0 };
 let hop = null;
 let queued = null;
 let riding = null;
+const bullets = [];
+let shootCooldown = 0;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#f4f1e8");
@@ -64,6 +69,8 @@ const leavesMat = new THREE.MeshLambertMaterial({ color: "#3f9b4a" });
 const waterMaterial = new THREE.MeshLambertMaterial({ color: "#5ec2e8" });
 const logGeo = new THREE.BoxGeometry(1, 0.2, 0.8);
 const logMat = new THREE.MeshLambertMaterial({ color: "#9c6b3a" });
+const bulletGeo = new THREE.BoxGeometry(0.15, 0.15, 0.5);
+const bulletMat = new THREE.MeshBasicMaterial({ color: "#ffd23f" });
 
 const rowGeometry = new THREE.BoxGeometry(ROW_WIDTH, 0.3, 1);
 const rowMaterials = [
@@ -196,7 +203,41 @@ function updateLogs(delta) {
   }
 }
 
+function shoot() {
+  if (shootCooldown > 0) return;
+  shootCooldown = SHOOT_COOLDOWN;
+  const mesh = new THREE.Mesh(bulletGeo, bulletMat);
+  mesh.position.set(player.position.x, 0.6, player.position.z - 0.6);
+  scene.add(mesh);
+  bullets.push({ mesh, traveled: 0 });
+}
+
+function removeBullet(index) {
+  scene.remove(bullets[index].mesh);
+  bullets.splice(index, 1);
+}
+
+function updateBullets(delta) {
+  shootCooldown = Math.max(0, shootCooldown - delta);
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const bullet = bullets[i];
+    const step = BULLET_SPEED * delta;
+    bullet.mesh.position.z -= step;
+    bullet.traveled += step;
+
+    const row = rows.get(Math.round(bullet.mesh.position.z));
+    const col = Math.round(bullet.mesh.position.x);
+    if (row && row.userData.info.trees.has(col)) {
+      removeBullet(i);
+    } else if (bullet.traveled >= BULLET_RANGE) {
+      removeBullet(i);
+    }
+  }
+}
+
 function resetGame() {
+  while (bullets.length) removeBullet(bullets.length - 1);
+  shootCooldown = 0;
   for (const row of rows.values()) scene.remove(row);
   rows.clear();
   rowInfo.clear();
@@ -243,6 +284,7 @@ function animate() {
   const delta = Math.min(clock.getDelta(), 0.05);
 
   updateLogs(delta);
+  updateBullets(delta);
 
   if (!hop && riding) {
     player.position.x = riding.log.x + riding.offset;
@@ -300,6 +342,11 @@ function animate() {
 }
 
 document.addEventListener("keydown", (event) => {
+  if (event.code === "Space") {
+    event.preventDefault();
+    shoot();
+    return;
+  }
   const direction = directions[event.key.toLowerCase()];
   if (!direction) return;
   event.preventDefault();
