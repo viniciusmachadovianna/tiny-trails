@@ -17,6 +17,14 @@ const WRAP = ROW_WIDTH / 2;
 const BULLET_SPEED = 18;
 const BULLET_RANGE = 12;
 const SHOOT_COOLDOWN = 0.25;
+const ZOMBIE_SIZE = 0.7;
+const ZOMBIE_SPEED_MIN = 1.2;
+const ZOMBIE_SPEED_MAX = 2;
+const ZOMBIE_SPAWN_DISTANCE = 11;
+const ZOMBIE_DESPAWN_DISTANCE = 20;
+const ZOMBIE_SPAWN_INTERVAL = 1.5;
+const ZOMBIE_HIT_DISTANCE = 0.7;
+const MAX_ZOMBIES = 12;
 const arenaRoot = document.querySelector("#game");
 
 const vectors = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
@@ -26,6 +34,9 @@ let queued = null;
 let riding = null;
 const bullets = [];
 let shootCooldown = 0;
+let facing = "up";
+const zombies = [];
+let zombieTimer = ZOMBIE_SPAWN_INTERVAL;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#f4f1e8");
@@ -62,6 +73,18 @@ player.position.y = PLAYER_HEIGHT / 2;
 player.castShadow = true;
 scene.add(player);
 
+const faceMarker = new THREE.Mesh(
+  new THREE.BoxGeometry(0.22, 0.22, 0.22),
+  new THREE.MeshLambertMaterial({ color: "#3b2a20" }),
+);
+player.add(faceMarker);
+
+function setFacing(dir) {
+  facing = dir;
+  const [dx, dz] = vectors[dir];
+  faceMarker.position.set(dx * 0.4, 0.1, dz * 0.25);
+}
+
 const trunkGeo = new THREE.BoxGeometry(0.3, 0.5, 0.3);
 const leavesGeo = new THREE.BoxGeometry(0.8, 0.9, 0.8);
 const trunkMat = new THREE.MeshLambertMaterial({ color: "#8b5a2b" });
@@ -71,6 +94,8 @@ const logGeo = new THREE.BoxGeometry(1, 0.2, 0.8);
 const logMat = new THREE.MeshLambertMaterial({ color: "#9c6b3a" });
 const bulletGeo = new THREE.BoxGeometry(0.15, 0.15, 0.5);
 const bulletMat = new THREE.MeshBasicMaterial({ color: "#ffd23f" });
+const zombieGeo = new THREE.BoxGeometry(ZOMBIE_SIZE, 0.9, ZOMBIE_SIZE);
+const zombieMat = new THREE.MeshLambertMaterial({ color: "#5b8c3a" });
 
 const rowGeometry = new THREE.BoxGeometry(ROW_WIDTH, 0.3, 1);
 const rowMaterials = [
@@ -207,9 +232,11 @@ function shoot() {
   if (shootCooldown > 0) return;
   shootCooldown = SHOOT_COOLDOWN;
   const mesh = new THREE.Mesh(bulletGeo, bulletMat);
-  mesh.position.set(player.position.x, 0.6, player.position.z - 0.6);
+  const [dx, dz] = vectors[facing];
+  mesh.position.set(player.position.x + dx * 0.6, 0.6, player.position.z + dz * 0.6);
+  mesh.rotation.y = dx !== 0 ? Math.PI / 2 : 0;
   scene.add(mesh);
-  bullets.push({ mesh, traveled: 0 });
+  bullets.push({ mesh, traveled: 0, dx, dz });
 }
 
 function removeBullet(index) {
@@ -222,11 +249,31 @@ function updateBullets(delta) {
   for (let i = bullets.length - 1; i >= 0; i--) {
     const bullet = bullets[i];
     const step = BULLET_SPEED * delta;
-    bullet.mesh.position.z -= step;
+    const prevX = bullet.mesh.position.x;
+    const prevZ = bullet.mesh.position.z;
+    bullet.mesh.position.x += bullet.dx * step;
+    bullet.mesh.position.z += bullet.dz * step;
     bullet.traveled += step;
 
-    const row = rows.get(Math.round(bullet.mesh.position.z));
-    const col = Math.round(bullet.mesh.position.x);
+    const bx = bullet.mesh.position.x;
+    const bz = bullet.mesh.position.z;
+    const reach = ZOMBIE_SIZE / 2 + 0.1;
+    const minX = Math.min(prevX, bx) - reach;
+    const maxX = Math.max(prevX, bx) + reach;
+    const minZ = Math.min(prevZ, bz) - reach;
+    const maxZ = Math.max(prevZ, bz) + reach;
+    const hit = zombies.findIndex((zombie) => {
+      const zp = zombie.mesh.position;
+      return zp.x > minX && zp.x < maxX && zp.z > minZ && zp.z < maxZ;
+    });
+    if (hit !== -1) {
+      removeZombie(hit);
+      removeBullet(i);
+      continue;
+    }
+
+    const row = rows.get(Math.round(bz));
+    const col = Math.round(bx);
     if (row && row.userData.info.trees.has(col)) {
       removeBullet(i);
     } else if (bullet.traveled >= BULLET_RANGE) {
@@ -235,9 +282,56 @@ function updateBullets(delta) {
   }
 }
 
+function spawnZombie() {
+  const angle = Math.random() * Math.PI * 2;
+  const mesh = new THREE.Mesh(zombieGeo, zombieMat);
+  mesh.position.set(
+    player.position.x + Math.cos(angle) * ZOMBIE_SPAWN_DISTANCE,
+    0.45,
+    player.position.z + Math.sin(angle) * ZOMBIE_SPAWN_DISTANCE,
+  );
+  mesh.castShadow = true;
+  scene.add(mesh);
+  const speed = ZOMBIE_SPEED_MIN + Math.random() * (ZOMBIE_SPEED_MAX - ZOMBIE_SPEED_MIN);
+  zombies.push({ mesh, speed });
+}
+
+function removeZombie(index) {
+  scene.remove(zombies[index].mesh);
+  zombies.splice(index, 1);
+}
+
+// Moves zombies toward the player. Returns true if one reached the player.
+function updateZombies(delta) {
+  zombieTimer -= delta;
+  if (zombieTimer <= 0 && zombies.length < MAX_ZOMBIES) {
+    zombieTimer = ZOMBIE_SPAWN_INTERVAL;
+    spawnZombie();
+  }
+
+  for (let i = zombies.length - 1; i >= 0; i--) {
+    const zombie = zombies[i];
+    const pos = zombie.mesh.position;
+    const dx = player.position.x - pos.x;
+    const dz = player.position.z - pos.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < ZOMBIE_HIT_DISTANCE) return true;
+    if (dist > ZOMBIE_DESPAWN_DISTANCE) {
+      removeZombie(i);
+      continue;
+    }
+    pos.x += (dx / dist) * zombie.speed * delta;
+    pos.z += (dz / dist) * zombie.speed * delta;
+  }
+  return false;
+}
+
 function resetGame() {
   while (bullets.length) removeBullet(bullets.length - 1);
   shootCooldown = 0;
+  setFacing("up");
+  while (zombies.length) removeZombie(zombies.length - 1);
+  zombieTimer = ZOMBIE_SPAWN_INTERVAL;
   for (const row of rows.values()) scene.remove(row);
   rows.clear();
   rowInfo.clear();
@@ -285,6 +379,10 @@ function animate() {
 
   updateLogs(delta);
   updateBullets(delta);
+  if (updateZombies(delta)) {
+    resetGame();
+    return;
+  }
 
   if (!hop && riding) {
     player.position.x = riding.log.x + riding.offset;
@@ -351,6 +449,7 @@ document.addEventListener("keydown", (event) => {
   if (!direction) return;
   event.preventDefault();
   if (event.repeat) return;
+  setFacing(direction);
   pressed.add(direction);
   if (hop) queued = direction;
   else startHop(direction);
@@ -379,5 +478,6 @@ window.addEventListener("resize", () => {
 });
 
 window.dispatchEvent(new Event("resize"));
+setFacing("up");
 updateRows();
 animate();
