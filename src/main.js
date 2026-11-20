@@ -2,10 +2,10 @@ import * as THREE from "three";
 import "./style.css";
 import { resetBullets, shoot, updateBullets } from "./bullets.js";
 import { resetZombies, updateZombies } from "./zombies.js";
+import { playDeath, playHop, playSplash } from "./sounds.js";
+import { createPlayer } from "./player.js";
 
 const ARENA_HALF_SIZE = 8;
-const PLAYER_WIDTH = 0.9;
-const PLAYER_DEPTH = 0.62;
 const PLAYER_HEIGHT = 0.5;
 const HOP_TIME = 0.16;
 const HOP_TIME_HELD = 0.28;
@@ -52,24 +52,16 @@ scene.add(sunlight);
 scene.add(sunlight.target);
 const focus = new THREE.Vector3(0, 0, 0);
 
-const player = new THREE.Mesh(
-  new THREE.BoxGeometry(PLAYER_WIDTH, PLAYER_HEIGHT, PLAYER_DEPTH),
-  new THREE.MeshLambertMaterial({ color: "#e87b5b" }),
-);
+const { root: player, model: playerModel, legs: playerLegs, arms: playerArms } = createPlayer();
 player.position.y = PLAYER_HEIGHT / 2;
-player.castShadow = true;
 scene.add(player);
 
-const faceMarker = new THREE.Mesh(
-  new THREE.BoxGeometry(0.22, 0.22, 0.22),
-  new THREE.MeshLambertMaterial({ color: "#3b2a20" }),
-);
-player.add(faceMarker);
+let faceAngle = 0;
 
 function setFacing(dir) {
   facing = dir;
   const [dx, dz] = vectors[dir];
-  faceMarker.position.set(dx * 0.4, 0.1, dz * 0.25);
+  faceAngle = Math.atan2(dx, dz);
 }
 
 const trunkGeo = new THREE.BoxGeometry(0.3, 0.5, 0.3);
@@ -239,6 +231,7 @@ function startHop(dir, duration = HOP_TIME) {
   if (getRowInfo(toZ).trees.has(toX)) return;
   riding = null;
   hop = { fromX: player.position.x, fromZ: cell.z, toX, toZ, t: 0, duration };
+  playHop();
 }
 
 const pressed = new Set();
@@ -262,6 +255,7 @@ function animate() {
   updateLogs(delta);
   updateBullets(delta, scene, rows);
   if (updateZombies(delta, scene, player)) {
+    playDeath();
     resetGame();
     return;
   }
@@ -269,6 +263,7 @@ function animate() {
   if (!hop && riding) {
     player.position.x = riding.log.x + riding.offset;
     if (Math.abs(player.position.x) > MAX_CELL_X + 0.5) {
+      playSplash();
       resetGame();
       return;
     }
@@ -294,6 +289,7 @@ function animate() {
           (l) => Math.abs(player.position.x - l.x) <= l.len / 2 + 0.2,
         );
         if (!log) {
+          playSplash();
           resetGame();
           return;
         }
@@ -310,6 +306,15 @@ function animate() {
       }
     }
   }
+
+  const s = hop ? Math.sin(hop.t * Math.PI) : 0;
+  playerModel.scale.set(1 - s * 0.08, 1 + s * 0.15, 1 - s * 0.08);
+  playerLegs[0].rotation.x = s * 0.7;
+  playerLegs[1].rotation.x = -s * 0.7;
+  playerArms[0].rotation.x = -s * 0.5;
+  let diff = faceAngle - playerModel.rotation.y;
+  diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+  playerModel.rotation.y += diff * Math.min(1, delta * 18);
 
   const follow = 1 - Math.exp(-6 * delta);
   focus.x += (player.position.x * 0.3 - focus.x) * follow;

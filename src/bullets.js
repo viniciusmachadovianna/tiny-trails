@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { removeZombie, ZOMBIE_SIZE, zombies } from "./zombies.js";
+import { playShoot, playZombieHit } from "./sounds.js";
 
 const BULLET_SPEED = 18;
 const BULLET_RANGE = 12;
@@ -14,6 +15,7 @@ let shootCooldown = 0;
 export function shoot(scene, player, direction) {
   if (shootCooldown > 0) return;
   shootCooldown = SHOOT_COOLDOWN;
+  playShoot();
   const [dx, dz] = direction;
   const mesh = new THREE.Mesh(bulletGeo, bulletMat);
   mesh.position.set(player.position.x + dx * 0.6, 0.6, player.position.z + dz * 0.6);
@@ -50,6 +52,7 @@ export function updateBullets(delta, scene, rows) {
       return zp.x > minX && zp.x < maxX && zp.z > minZ && zp.z < maxZ;
     });
     if (hit !== -1) {
+      playZombieHit();
       removeZombie(scene, hit);
       removeBullet(scene, i);
       continue;
