@@ -1,22 +1,22 @@
 import * as THREE from "three";
 import { playGroan } from "./sounds.js";
+import { emit } from "./particles.js";
 
-export const ZOMBIE_SIZE = 0.7;
 const ZOMBIE_SPEED_MIN = 1.2;
 const ZOMBIE_SPEED_MAX = 2;
 const ZOMBIE_SPAWN_DISTANCE = 11;
 const ZOMBIE_DESPAWN_DISTANCE = 20;
 const ZOMBIE_SPAWN_INTERVAL = 1.5;
-const ZOMBIE_HIT_DISTANCE = 0.7;
 const MAX_ZOMBIES = 12;
 
-const skinMat = new THREE.MeshLambertMaterial({ color: "#86b35e" });
+const skinColor = "#86b35e";
+const skinMat = new THREE.MeshLambertMaterial({ color: skinColor });
 const pantsMat = new THREE.MeshLambertMaterial({ color: "#3b3550" });
 const eyeMat = new THREE.MeshBasicMaterial({ color: "#e84a4a" });
 const mouthMat = new THREE.MeshLambertMaterial({ color: "#3a1414" });
-const shirtMats = ["#3f6fa8", "#a8493f", "#7a5aa8", "#c9a23f"].map(
-  (color) => new THREE.MeshLambertMaterial({ color }),
-);
+const shirtColors = ["#3f6fa8", "#a8493f", "#7a5aa8", "#c9a23f"];
+const shirtMats = shirtColors.map((color) => new THREE.MeshLambertMaterial({ color }));
+const hitboxMat = new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide });
 
 const bodyGeo = new THREE.BoxGeometry(0.5, 0.35, 0.28);
 const headGeo = new THREE.BoxGeometry(0.38, 0.32, 0.34);
@@ -25,18 +25,20 @@ const armGeo = new THREE.BoxGeometry(0.13, 0.13, 0.42).translate(0, 0, 0.21);
 const eyeGeo = new THREE.BoxGeometry(0.07, 0.07, 0.02);
 const mouthGeo = new THREE.BoxGeometry(0.16, 0.04, 0.02);
 const patchGeo = new THREE.BoxGeometry(0.16, 0.12, 0.02);
+const hitboxGeo = new THREE.BoxGeometry(0.6, 1, 0.5);
 
 export const zombies = [];
+export const hitboxes = [];
 let zombieTimer = ZOMBIE_SPAWN_INTERVAL;
 
-function createZombie() {
+function createZombieModel() {
   const root = new THREE.Group();
   const model = new THREE.Group();
   root.add(model);
 
-  const shirt = shirtMats[Math.floor(Math.random() * shirtMats.length)];
+  const shirtIndex = Math.floor(Math.random() * shirtMats.length);
 
-  const body = new THREE.Mesh(bodyGeo, shirt);
+  const body = new THREE.Mesh(bodyGeo, shirtMats[shirtIndex]);
   body.position.y = 0.475;
   const patch = new THREE.Mesh(patchGeo, skinMat);
   patch.position.set(0.1, 0.42, 0.141);
@@ -70,26 +72,53 @@ function createZombie() {
     if (child.isMesh && child.material !== eyeMat) child.castShadow = true;
   });
 
-  return { root, model, legs, arms };
+  const hitbox = new THREE.Mesh(hitboxGeo, hitboxMat);
+  hitbox.position.y = 0.5;
+  root.add(hitbox);
+
+  return { root, model, legs, arms, hitbox, shirtColor: shirtColors[shirtIndex] };
 }
 
 function spawnZombie(scene, player) {
   const angle = Math.random() * Math.PI * 2;
-  const { root, model, legs, arms } = createZombie();
-  root.position.set(
+  const parts = createZombieModel();
+  parts.root.position.set(
     player.position.x + Math.cos(angle) * ZOMBIE_SPAWN_DISTANCE,
     0,
     player.position.z + Math.sin(angle) * ZOMBIE_SPAWN_DISTANCE,
   );
-  scene.add(root);
-  const speed = ZOMBIE_SPEED_MIN + Math.random() * (ZOMBIE_SPEED_MAX - ZOMBIE_SPEED_MIN);
-  zombies.push({ mesh: root, model, legs, arms, speed, walk: Math.random() * 6 });
+  scene.add(parts.root);
+  const zombie = {
+    mesh: parts.root,
+    model: parts.model,
+    legs: parts.legs,
+    arms: parts.arms,
+    hitbox: parts.hitbox,
+    box: new THREE.Box3(),
+    shirtColor: parts.shirtColor,
+    speed: ZOMBIE_SPEED_MIN + Math.random() * (ZOMBIE_SPEED_MAX - ZOMBIE_SPEED_MIN),
+    walk: Math.random() * 6,
+  };
+  parts.hitbox.userData.zombie = zombie;
+  parts.root.updateMatrixWorld(true);
+  zombies.push(zombie);
+  hitboxes.push(parts.hitbox);
   if (Math.random() < 0.4) playGroan();
 }
 
 export function removeZombie(scene, index) {
+  if (index < 0) return;
   scene.remove(zombies[index].mesh);
   zombies.splice(index, 1);
+  hitboxes.splice(index, 1);
+}
+
+export function killZombie(scene, zombie) {
+  const pos = zombie.mesh.position;
+  emit(pos.x, 0.5, pos.z, skinColor, 8, 3.2);
+  emit(pos.x, 0.5, pos.z, zombie.shirtColor, 6, 3.2);
+  emit(pos.x, 0.5, pos.z, "#7a1f1f", 4, 2.5);
+  removeZombie(scene, zombies.indexOf(zombie));
 }
 
 function animateZombie(zombie, dx, dz, delta) {
@@ -107,7 +136,7 @@ function animateZombie(zombie, dx, dz, delta) {
   zombie.mesh.rotation.y += diff * Math.min(1, delta * 8);
 }
 
-export function updateZombies(delta, scene, player) {
+export function updateZombies(delta, scene, player, playerBox) {
   zombieTimer -= delta;
   if (zombieTimer <= 0 && zombies.length < MAX_ZOMBIES) {
     zombieTimer = ZOMBIE_SPAWN_INTERVAL;
@@ -119,8 +148,7 @@ export function updateZombies(delta, scene, player) {
     const pos = zombie.mesh.position;
     const dx = player.position.x - pos.x;
     const dz = player.position.z - pos.z;
-    const dist = Math.hypot(dx, dz);
-    if (dist < ZOMBIE_HIT_DISTANCE) return true;
+    const dist = Math.max(Math.hypot(dx, dz), 0.0001);
     if (dist > ZOMBIE_DESPAWN_DISTANCE) {
       removeZombie(scene, i);
       continue;
@@ -128,6 +156,10 @@ export function updateZombies(delta, scene, player) {
     pos.x += (dx / dist) * zombie.speed * delta;
     pos.z += (dz / dist) * zombie.speed * delta;
     animateZombie(zombie, dx, dz, delta);
+
+    zombie.mesh.updateMatrixWorld(true);
+    zombie.box.setFromObject(zombie.hitbox);
+    if (playerBox.intersectsBox(zombie.box)) return true;
   }
   return false;
 }
