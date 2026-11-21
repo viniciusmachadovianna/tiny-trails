@@ -30,6 +30,11 @@ const hitboxGeo = new THREE.BoxGeometry(0.6, 1, 0.5);
 export const zombies = [];
 export const hitboxes = [];
 let zombieTimer = ZOMBIE_SPAWN_INTERVAL;
+let kills = 0;
+
+export function getKills() {
+  return kills;
+}
 
 function createZombieModel() {
   const root = new THREE.Group();
@@ -114,6 +119,7 @@ export function removeZombie(scene, index) {
 }
 
 export function killZombie(scene, zombie) {
+  kills++;
   const pos = zombie.mesh.position;
   emit(pos.x, 0.5, pos.z, skinColor, 8, 3.2);
   emit(pos.x, 0.5, pos.z, zombie.shirtColor, 6, 3.2);
@@ -167,4 +173,5 @@ export function updateZombies(delta, scene, player, playerBox) {
 export function resetZombies(scene) {
   while (zombies.length) removeZombie(scene, zombies.length - 1);
   zombieTimer = ZOMBIE_SPAWN_INTERVAL;
+  kills = 0;
 }

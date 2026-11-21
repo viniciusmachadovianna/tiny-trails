@@ -1,9 +1,10 @@
 import * as THREE from "three";
 import "./style.css";
 import { resetBullets, shoot, updateBullets } from "./bullets.js";
-import { resetZombies, updateZombies } from "./zombies.js";
+import { getKills, resetZombies, updateZombies } from "./zombies.js";
 import { playDeath, playHop, playSplash } from "./sounds.js";
 import { createPlayer } from "./player.js";
+import { updateHud } from "./hud.js";
 import { initParticles, resetParticles, updateParticles } from "./particles.js";
 import { initLighting, resetLighting, updateLighting } from "./lighting.js";
 import {
@@ -191,6 +192,7 @@ function animate() {
   focus.z += (player.position.z - focus.z) * follow;
   camera.position.set(focus.x + 14, 20, focus.z + 14);
   updateLighting(delta, focus, player.position);
+  updateHud(Math.max(0, -bestZ), getKills());
 
   renderer.render(scene, camera);
 }
