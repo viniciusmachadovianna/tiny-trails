@@ -80,10 +80,12 @@ const waterTexture = makeTexture(128, 64, (ctx, w, h) => {
   }
 });
 
-const trunkGeo = new THREE.BoxGeometry(0.3, 0.5, 0.3);
-const leavesGeo = new THREE.BoxGeometry(0.8, 0.9, 0.8);
-const trunkMat = new THREE.MeshLambertMaterial({ color: "#8b5a2b" });
-const leavesMat = new THREE.MeshLambertMaterial({ color: "#3f9b4a" });
+// Tronco + copa fundidos em UMA geometria (cores por vértice): metade dos draw calls
+// de árvores, tanto no render normal quanto no mapa de sombras.
+const treeGeo = mergeBoxes([
+  { geometry: new THREE.BoxGeometry(0.3, 0.5, 0.3), position: [0, 0.25, 0], color: "#8b5a2b" },
+  { geometry: new THREE.BoxGeometry(0.8, 0.9, 0.8), position: [0, 0.95, 0], color: "#3f9b4a" },
+]);
 const logGeo = new THREE.BoxGeometry(1, 0.2, 0.8);
 const logMat = new THREE.MeshLambertMaterial({ color: "#9c6b3a" });
 const rowGeometry = new THREE.BoxGeometry(ROW_WIDTH, 0.3, 1);
@@ -99,6 +101,7 @@ const roadMaterials = [
 ];
 
 const dummy = new THREE.Object3D();
+const logMatrix = new THREE.Matrix4();
 
 const parkedCarColors = ["#7b8794", "#8a6f5a", "#6f7a5a"];
 const carBodyGeo = new THREE.BoxGeometry(1.8, 0.32, 0.72);
@@ -206,22 +209,37 @@ export function isBlocked(x, z) {
 function createTrees(row, info) {
   const xs = [...info.trees].filter((x) => !info.carCells.has(x));
   if (!xs.length) return;
-  const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, xs.length);
-  const leaves = new THREE.InstancedMesh(leavesGeo, leavesMat, xs.length);
+  const trees = new THREE.InstancedMesh(treeGeo, vertexColorMaterial, xs.length);
   xs.forEach((x, i) => {
-    dummy.position.set(x, 0.25, 0);
+    dummy.position.set(x, 0, 0);
     dummy.updateMatrix();
-    trunks.setMatrixAt(i, dummy.matrix);
-    dummy.position.set(x, 0.95, 0);
-    dummy.updateMatrix();
-    leaves.setMatrixAt(i, dummy.matrix);
+    trees.setMatrixAt(i, dummy.matrix);
   });
-  for (const mesh of [trunks, leaves]) {
-    mesh.castShadow = true;
-    mesh.frustumCulled = false;
-    mesh.instanceMatrix.needsUpdate = true;
-    row.add(mesh);
-  }
+  trees.castShadow = true;
+  trees.frustumCulled = false;
+  trees.instanceMatrix.needsUpdate = true;
+  row.add(trees);
+}
+
+function writeLogMatrix(mesh, index, log) {
+  logMatrix.makeScale(log.len, 1, 1);
+  logMatrix.setPosition(log.x, -0.1, 0);
+  mesh.setMatrixAt(index, logMatrix);
+}
+
+// Todos os troncos de uma linha de rio viram UM InstancedMesh (antes: 1 Mesh por tronco,
+// ~12 por linha, cada um com draw call próprio + draw call no mapa de sombras).
+function createLogMesh(row, info) {
+  if (!info.logs.length) return;
+  const mesh = new THREE.InstancedMesh(logGeo, logMat, info.logs.length);
+  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.frustumCulled = false;
+  info.logs.forEach((log, i) => writeLogMatrix(mesh, i, log));
+  mesh.instanceMatrix.needsUpdate = true;
+  info.logMesh = mesh;
+  row.add(mesh);
 }
 
 function createCarMesh(car) {
@@ -251,15 +269,7 @@ function createRow(z) {
   createTrees(row, info);
   for (const car of info.cars) row.add(createCarMesh(car));
 
-  for (const log of info.logs) {
-    const mesh = new THREE.Mesh(logGeo, logMat);
-    mesh.scale.x = log.len;
-    mesh.position.set(log.x, -0.1, 0);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    row.add(mesh);
-    log.mesh = mesh;
-  }
+  createLogMesh(row, info);
 
   row.position.z = z;
   scene.add(row);
@@ -271,6 +281,7 @@ function disposeRow(row) {
   row.traverse((child) => {
     if (child.isInstancedMesh) child.dispose();
   });
+  row.userData.info.logMesh = null;
 }
 
 export function updateRows(centerZ) {
@@ -289,12 +300,18 @@ export function updateRows(centerZ) {
 
 export function updateLogs(delta) {
   for (const row of rows.values()) {
-    for (const log of row.userData.info.logs) {
+    const info = row.userData.info;
+    const mesh = info.logMesh;
+    if (!mesh) continue;
+    const logs = info.logs;
+    for (let i = 0; i < logs.length; i++) {
+      const log = logs[i];
       log.x += log.dir * log.speed * delta;
       if (log.x > WRAP) log.x -= ROW_WIDTH;
       if (log.x < -WRAP) log.x += ROW_WIDTH;
-      log.mesh.position.x = log.x;
+      writeLogMatrix(mesh, i, log);
     }
+    mesh.instanceMatrix.needsUpdate = true;
   }
 }
 

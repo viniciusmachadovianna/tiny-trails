@@ -4,6 +4,11 @@ const DAY_LENGTH = 100;
 const LANTERN_INTENSITY = 28;
 const FLASH_INTENSITY = 45;
 
+// Qualidade das sombras. Se ainda ficar pesado em GPU fraca, 1024 corta o custo do mapa
+// de sombras em 4x (sombras ficam mais "quadradonas").
+const SHADOW_MAP_SIZE = 2048;
+const SHADOW_RANGE = 30;
+
 const day = {
   bg: new THREE.Color("#f4f1e8"),
   sky: new THREE.Color("#ffffff"),
@@ -46,27 +51,15 @@ export function initLighting(targetScene) {
   sun = new THREE.DirectionalLight(day.sun.clone(), day.sunIntensity);
   sun.position.set(-8, 14, 10);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-
-sun.shadow.camera.left = -30;
-sun.shadow.camera.right = 30;
-sun.shadow.camera.top = 30;
-sun.shadow.camera.bottom = -30;
-
-sun.shadow.camera.near = 0.5;
-sun.shadow.camera.far = 60;
-
-sun.shadow.camera.updateProjectionMatrix();sun.shadow.mapSize.set(2048, 2048);
-
-sun.shadow.camera.left = -30;
-sun.shadow.camera.right = 30;
-sun.shadow.camera.top = 30;
-sun.shadow.camera.bottom = -30;
-
-sun.shadow.camera.near = 0.5;
-sun.shadow.camera.far = 60;
-
-sun.shadow.camera.updateProjectionMatrix();
+  sun.shadow.mapSize.set(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
+  const shadowCam = sun.shadow.camera;
+  shadowCam.left = -SHADOW_RANGE;
+  shadowCam.right = SHADOW_RANGE;
+  shadowCam.top = SHADOW_RANGE;
+  shadowCam.bottom = -SHADOW_RANGE;
+  shadowCam.near = 0.5;
+  shadowCam.far = 60;
+  shadowCam.updateProjectionMatrix();
 
   lantern = new THREE.PointLight("#ffcc88", 0, 14, 2);
 

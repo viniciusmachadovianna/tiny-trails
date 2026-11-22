@@ -5,7 +5,7 @@ import { activateZombies, getKills, resetZombies, updateZombies } from "./zombie
 import { initAudio, playDeath, playHop, playLand, playSplash, updateAmbience } from "./sounds.js";
 import { createPlayer } from "./player.js";
 import { updateHud } from "./hud.js";
-import { initParticles, resetParticles, updateParticles } from "./particles.js";
+import { initParticles, resetParticles, setParticlePixelRatio, updateParticles } from "./particles.js";
 import { getDaylight, initLighting, resetLighting, updateLighting } from "./lighting.js";
 import {
   getRowInfo,
@@ -24,6 +24,14 @@ const HOP_TIME = 0.16;
 const HOP_TIME_HELD = 0.28;
 const HOP_HEIGHT = 0.45;
 const MAX_BACK = 4;
+
+// Resolução adaptativa: se o FPS médio cair abaixo de ~40, reduz o pixel ratio em passos de
+// 0.25 (nunca abaixo de 1 pixel CSS). Só desce, nunca sobe sozinha, para não ficar oscilando.
+// Ponha false para desligar.
+const ADAPTIVE_RESOLUTION = true;
+const SLOW_FRAME_TIME = 1 / 40;
+const ADAPT_WINDOW_FRAMES = 60;
+const RATIO_STEP = 0.25;
 const arenaRoot = document.querySelector("#game");
 
 const vectors = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
@@ -39,8 +47,56 @@ const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
 camera.position.set(14, 20, 14);
 camera.lookAt(0, 0, 0);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+// Em telas de DPR >= 2 o MSAA é quase imperceptível, mas multiplica o custo de fill-rate
+// (já são 4x mais pixels). Por isso só liga o antialias em telas de DPR baixo.
+const renderer = new THREE.WebGLRenderer({
+  antialias: (window.devicePixelRatio || 1) < 2,
+  powerPreference: "high-performance",
+});
+let resolutionSteps = 0;
+let adaptTime = 0;
+let adaptFrames = 0;
+let adaptWarmup = 3; // segundos: ignora o início (compilação de shaders, síntese de áudio)
+
+function pixelRatioBounds() {
+  const max = Math.min(window.devicePixelRatio || 1, 2);
+  return { max, min: Math.min(1, max) };
+}
+
+function applyPixelRatio() {
+  const { max, min } = pixelRatioBounds();
+  const ratio = Math.max(min, max - resolutionSteps * RATIO_STEP);
+  renderer.setPixelRatio(ratio);
+  setParticlePixelRatio(ratio);
+}
+
+function adaptResolution(rawDelta) {
+  if (!ADAPTIVE_RESOLUTION) return;
+  const { max, min } = pixelRatioBounds();
+  if (max - resolutionSteps * RATIO_STEP <= min) return; // já no mínimo
+  if (document.hidden) {
+    adaptTime = 0;
+    adaptFrames = 0;
+    return;
+  }
+  if (adaptWarmup > 0) {
+    adaptWarmup -= rawDelta;
+    return;
+  }
+  adaptTime += Math.min(rawDelta, 0.1);
+  adaptFrames++;
+  if (adaptFrames < ADAPT_WINDOW_FRAMES) return;
+  const average = adaptTime / adaptFrames;
+  adaptTime = 0;
+  adaptFrames = 0;
+  if (average > SLOW_FRAME_TIME) {
+    resolutionSteps++;
+    applyPixelRatio();
+    adaptWarmup = 1; // deixa o novo framebuffer estabilizar antes de medir de novo
+  }
+}
+
+applyPixelRatio();
 renderer.setSize(arenaRoot.clientWidth, arenaRoot.clientHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
@@ -116,7 +172,9 @@ const clock = new THREE.Clock();
 
 function animate() {
   requestAnimationFrame(animate);
-  const delta = Math.min(clock.getDelta(), 0.05);
+  const rawDelta = clock.getDelta();
+  const delta = Math.min(rawDelta, 0.05);
+  adaptResolution(rawDelta);
 
   updateLogs(delta);
   updateWater(delta);
@@ -235,7 +293,7 @@ window.addEventListener("resize", () => {
   camera.top = halfHeight;
   camera.bottom = -halfHeight;
   camera.updateProjectionMatrix();
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  applyPixelRatio();
   renderer.setSize(arenaRoot.clientWidth, arenaRoot.clientHeight);
 });
 

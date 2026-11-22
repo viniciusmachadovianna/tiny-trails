@@ -239,19 +239,52 @@ function makeCrickets() {
   );
 }
 
-function buildBuffers() {
-  buffers.shots = [makeShot(), makeShot(), makeShot()];
-  buffers.hop = makeHop();
-  buffers.land = { grass: makeLand("grass"), road: makeLand("road"), log: makeLand("log") };
-  buffers.hits = [makeZombieHit(), makeZombieHit(), makeZombieHit()];
-  buffers.groans = [makeGroan(95, 25, 1.1), makeGroan(78, 20, 1.3), makeGroan(110, 35, 0.9)];
-  buffers.splash = makeSplash();
-  buffers.death = makeDeath();
-  buffers.alarm = makeAlarm();
-  buffers.treeHit = makeTreeHit();
-  buffers.clank = makeClank();
-  buffers.wind = makeWind();
-  buffers.crickets = makeCrickets();
+// Os sons são sintetizados por código (~25 s de áudio, com 12 senoides por amostra nos grunhidos).
+// Fazer tudo de uma vez no carregamento trava a página; aqui cada som roda numa tarefa própria,
+// deixando o navegador desenhar entre elas. Sons ainda não prontos simplesmente não tocam.
+function addTo(key, make) {
+  if (!buffers[key]) buffers[key] = [];
+  buffers[key].push(make());
+}
+
+function addLand(kind) {
+  if (!buffers.land) buffers.land = {};
+  buffers.land[kind] = makeLand(kind);
+}
+
+const buildQueue = [
+  () => { buffers.hop = makeHop(); },
+  () => addLand("grass"),
+  () => addLand("road"),
+  () => addLand("log"),
+  () => addTo("shots", makeShot),
+  () => addTo("shots", makeShot),
+  () => addTo("shots", makeShot),
+  () => addTo("hits", makeZombieHit),
+  () => addTo("hits", makeZombieHit),
+  () => addTo("hits", makeZombieHit),
+  () => { buffers.splash = makeSplash(); },
+  () => { buffers.death = makeDeath(); },
+  () => { buffers.treeHit = makeTreeHit(); },
+  () => { buffers.clank = makeClank(); },
+  () => addTo("groans", () => makeGroan(95, 25, 1.1)),
+  () => addTo("groans", () => makeGroan(78, 20, 1.3)),
+  () => addTo("groans", () => makeGroan(110, 35, 0.9)),
+  () => {
+    buffers.wind = makeWind();
+    windGain = startLoop(buffers.wind);
+  },
+  () => {
+    buffers.crickets = makeCrickets();
+    cricketsGain = startLoop(buffers.crickets);
+  },
+];
+
+function buildNext() {
+  const task = buildQueue.shift();
+  if (!task) return;
+  task();
+  setTimeout(buildNext, 0);
 }
 
 function startLoop(buffer) {
@@ -282,10 +315,8 @@ export function initAudio(camera, scene) {
     pool.push(audio);
   }
 
-  buildBuffers();
-  windGain = startLoop(buffers.wind);
-  cricketsGain = startLoop(buffers.crickets);
   ready = true;
+  setTimeout(buildNext, 0);
 
   const resume = () => {
     if (ctx.state === "suspended") ctx.resume();
@@ -306,16 +337,17 @@ export function toggleMute() {
 
 export function updateAmbience(daylight) {
   if (!ready) return;
-  windGain.gain.value = 0.05 + 0.04 * daylight;
-  cricketsGain.gain.value = 0.06 * Math.pow(1 - daylight, 1.5);
+  if (windGain) windGain.gain.value = 0.05 + 0.04 * daylight;
+  if (cricketsGain) cricketsGain.gain.value = 0.06 * Math.pow(1 - daylight, 1.5);
 }
 
 function pick(list) {
+  if (!list || !list.length) return undefined;
   return list[Math.floor(Math.random() * list.length)];
 }
 
 function play(buffer, volume = 1, jitter = 0.08) {
-  if (!ready) return;
+  if (!ready || !buffer) return;
   const source = ctx.createBufferSource();
   source.buffer = buffer;
   source.playbackRate.value = 1 + (Math.random() * 2 - 1) * jitter;
@@ -337,7 +369,7 @@ function setPannerPosition(panner, x, y, z) {
 }
 
 function playAt(buffer, x, z, volume = 1, jitter = 0.08) {
-  if (!ready) return;
+  if (!ready || !buffer) return;
   if (x === undefined || z === undefined) {
     play(buffer, volume, jitter);
     return;
@@ -359,7 +391,8 @@ export function playHop() {
 
 export function playLand(kind) {
   if (!ready) return;
-  play(buffers.land[kind] || buffers.land.grass, 0.4);
+  const land = buffers.land;
+  play(land && (land[kind] || land.grass), 0.4);
 }
 
 export function playShoot() {
@@ -399,5 +432,7 @@ export function playDeath() {
 }
 
 export function playHordeAlarm() {
+  if (!ready) return;
+  if (!buffers.alarm) buffers.alarm = makeAlarm(); // sob demanda: 1.7 s de áudio que ninguém usava
   play(buffers.alarm, 0.5, 0);
 }

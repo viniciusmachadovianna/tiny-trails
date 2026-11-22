@@ -30,6 +30,11 @@ export function initParticles(scene) {
   scene.add(points);
 }
 
+// Chamado quando a resolução de renderização muda, para o tamanho (em px de tela) não mudar.
+export function setParticlePixelRatio(ratio) {
+  material.size = 7 * ratio;
+}
+
 export function emit(x, y, z, color, count = 10, power = 3) {
   tmpColor.set(color);
   for (let n = 0; n < count; n++) {
