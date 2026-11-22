@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { mergeBoxes, vertexColorMaterial } from "./merge.js";
 
 export const MAX_CELL_X = 10;
 export const ROW_WIDTH = 60;
@@ -11,8 +12,16 @@ export const rows = new Map();
 const rowInfo = new Map();
 let lastGen = -1;
 let run = { type: "grass", left: 3 };
+let currentRoad = null;
 
-const START_INFO = { type: "grass", trees: new Set(), logs: [] };
+const START_INFO = {
+  type: "grass",
+  trees: new Set(),
+  logs: [],
+  cars: [],
+  carCells: new Set(),
+  road: null,
+};
 
 function makeTexture(width, height, draw) {
   const canvas = document.createElement("canvas");
@@ -91,6 +100,26 @@ const roadMaterials = [
 
 const dummy = new THREE.Object3D();
 
+const parkedCarColors = ["#7b8794", "#8a6f5a", "#6f7a5a"];
+const carBodyGeo = new THREE.BoxGeometry(1.8, 0.32, 0.72);
+const carCabinGeo = new THREE.BoxGeometry(0.9, 0.26, 0.62);
+const carWheelGeo = new THREE.BoxGeometry(0.32, 0.2, 0.08);
+
+function buildCarGeometry(color) {
+  const parts = [
+    { geometry: carBodyGeo, position: [0, 0.26, 0], color },
+    { geometry: carCabinGeo, position: [-0.15, 0.55, 0], color: "#2c3440" },
+  ];
+  for (const wx of [-0.55, 0.55]) {
+    for (const wz of [-0.38, 0.38]) {
+      parts.push({ geometry: carWheelGeo, position: [wx, 0.1, wz], color: "#1d1d20" });
+    }
+  }
+  return mergeBoxes(parts);
+}
+
+const parkedCarGeos = parkedCarColors.map(buildCarGeometry);
+
 export function initWorld(targetScene) {
   scene = targetScene;
 }
@@ -113,12 +142,43 @@ function createLogs(info) {
   }
 }
 
-function makeInfo() {
+function placeParkedCar(info) {
+  if (Math.random() >= 0.05) return;
+  const x0 = Math.floor(Math.random() * 25) - 12;
+  info.cars.push({
+    x: x0 + 0.5,
+    angle: (Math.random() < 0.5 ? 0 : Math.PI) + (Math.random() - 0.5) * 0.4,
+    colorIndex: Math.floor(Math.random() * parkedCarColors.length),
+  });
+  for (const cellX of [x0, x0 + 1]) {
+    info.trees.add(cellX);
+    info.carCells.add(cellX);
+  }
+}
+
+function makeInfo(z) {
   if (run.left <= 0) {
-    run = run.type === "river" ? { type: "grass", left: 1 } : randomRun();
+    const previous = run.type;
+    run = previous === "river" ? { type: "grass", left: 1 } : randomRun();
+    if (previous === "road" && run.type === "road") {
+      run = { type: "grass", left: 1 + Math.floor(Math.random() * 3) };
+    }
+    run.size = run.left;
+    currentRoad =
+      run.type === "road"
+        ? { rows: [], big: run.size >= 3, dir: Math.random() < 0.5 ? -1 : 1, timer: undefined, warned: false }
+        : null;
   }
   run.left--;
-  const info = { type: run.type, trees: new Set(), logs: [] };
+  const info = {
+    type: run.type,
+    trees: new Set(),
+    logs: [],
+    cars: [],
+    carCells: new Set(),
+    road: run.type === "road" ? currentRoad : null,
+  };
+  if (info.road) info.road.rows.push(z);
   if (run.type === "grass") {
     for (let x = -26; x <= 26; x++) {
       const playable = Math.abs(x) <= MAX_CELL_X;
@@ -126,6 +186,7 @@ function makeInfo() {
     }
   }
   if (run.type === "river") createLogs(info);
+  if (run.type === "road") placeParkedCar(info);
   return info;
 }
 
@@ -133,7 +194,7 @@ export function getRowInfo(z) {
   if (z >= -1) return START_INFO;
   while (lastGen > z) {
     lastGen--;
-    rowInfo.set(lastGen, makeInfo());
+    rowInfo.set(lastGen, makeInfo(lastGen));
   }
   return rowInfo.get(z);
 }
@@ -143,7 +204,7 @@ export function isBlocked(x, z) {
 }
 
 function createTrees(row, info) {
-  const xs = [...info.trees];
+  const xs = [...info.trees].filter((x) => !info.carCells.has(x));
   if (!xs.length) return;
   const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, xs.length);
   const leaves = new THREE.InstancedMesh(leavesGeo, leavesMat, xs.length);
@@ -163,6 +224,16 @@ function createTrees(row, info) {
   }
 }
 
+function createCarMesh(car) {
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(parkedCarGeos[car.colorIndex], vertexColorMaterial);
+  body.rotation.y = car.angle;
+  body.castShadow = true;
+  group.add(body);
+  group.position.x = car.x;
+  return group;
+}
+
 function createRow(z) {
   const info = getRowInfo(z);
   const row = new THREE.Group();
@@ -178,6 +249,7 @@ function createRow(z) {
   row.add(floor);
 
   createTrees(row, info);
+  for (const car of info.cars) row.add(createCarMesh(car));
 
   for (const log of info.logs) {
     const mesh = new THREE.Mesh(logGeo, logMat);
@@ -236,4 +308,5 @@ export function resetWorld() {
   rowInfo.clear();
   lastGen = -1;
   run = { type: "grass", left: 3 };
+  currentRoad = null;
 }

@@ -126,8 +126,10 @@ export function updateBullets(delta, scene) {
     const bx = bullet.mesh.position.x;
     const bz = bullet.mesh.position.z;
     const row = rows.get(Math.round(bz));
-    if (row && row.userData.info.trees.has(Math.round(bx))) {
-      emit(bx, 0.6, bz, "#3f9b4a", 4, 2);
+    const cellX = Math.round(bx);
+    if (row && row.userData.info.trees.has(cellX)) {
+      const isCar = row.userData.info.carCells.has(cellX);
+      emit(bx, isCar ? 0.5 : 0.6, bz, isCar ? "#ffd23f" : "#3f9b4a", 4, 2);
       removeBullet(scene, i);
     } else if (bullet.traveled >= BULLET_RANGE) {
       removeBullet(scene, i);

@@ -43,3 +43,20 @@ body {
   font-size: 18px;
   font-weight: 700;
 }
+
+#message {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(179, 56, 44, 0.9);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+#message.visible {
+  opacity: 1;
+}

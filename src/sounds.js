@@ -68,3 +68,9 @@ export function playDeath() {
   tone({ type: "sawtooth", from: 320, to: 45, duration: 0.7, volume: 0.15 });
   noise({ duration: 0.4, volume: 0.15, filter: 800 });
 }
+
+export function playHordeAlarm() {
+  for (let i = 0; i < 3; i++) {
+    tone({ type: "square", from: 620, to: 440, duration: 0.2, volume: 0.07, delay: i * 0.28 });
+  }
+}
