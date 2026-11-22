@@ -83,7 +83,7 @@ body {
   position: fixed;
   top: 22px;
   left: 50%;
-  z-index: 20;
+  z-index: 40;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -145,6 +145,213 @@ body {
   to { filter: brightness(1.16); }
 }
 
+/* ---------- Botão de pausa ---------- */
+
+#pause-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 16;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 10px;
+  background: rgba(24, 28, 36, 0.82);
+  color: #f8fafc;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+#pause-btn[hidden] {
+  display: none;
+}
+
+#pause-btn svg {
+  fill: currentColor;
+}
+
+#pause-btn:hover {
+  background: rgba(40, 46, 58, 0.92);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+#pause-btn:active {
+  transform: scale(0.94);
+}
+
+#pause-btn:focus-visible,
+.overlay-btn:focus-visible {
+  outline: 2px solid #ffb09b;
+  outline-offset: 2px;
+}
+
+/* ---------- Tela de pausa / fim de jogo ---------- */
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 12, 18, 0.6);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  font-family: system-ui, -apple-system, sans-serif;
+  animation: overlay-in 0.2s ease both;
+}
+
+#overlay[hidden] {
+  display: none;
+}
+
+#overlay .panel {
+  width: min(380px, 100%);
+  padding: 26px 24px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  background: rgba(24, 28, 36, 0.95);
+  color: #f8fafc;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  animation: panel-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+#overlay h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+#overlay[data-mode="dead"] h2 {
+  color: #ff9b85;
+}
+
+.overlay-sub {
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: #cbd5e1;
+}
+
+.overlay-stats {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: 10px 12px;
+  margin: 20px 0 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.overlay-stats[hidden],
+.overlay-badge[hidden] {
+  display: none;
+}
+
+.overlay-stats .os-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.overlay-stats strong {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  text-align: right;
+}
+
+.overlay-stats em {
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.overlay-badge {
+  margin-top: 14px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255, 196, 61, 0.16);
+  color: #ffd86b;
+  font-size: 14px;
+  font-weight: 800;
+  animation: badge-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) 0.15s both;
+}
+
+.overlay-btn {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 13px 20px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ff8a69, #ee6648);
+  color: #fff;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(238, 102, 72, 0.35);
+  transition: transform 0.12s ease, filter 0.12s ease, opacity 0.2s ease;
+}
+
+.overlay-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.overlay-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.overlay-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.overlay-hint {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes badge-pop {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #overlay,
+  #overlay .panel,
+  .overlay-badge {
+    animation: none;
+  }
+}
+
 @media (max-width: 520px) {
   #hud {
     top: 12px;
@@ -173,5 +380,16 @@ body {
     top: 56px;
     padding: 9px 12px;
     font-size: 12px;
+  }
+
+  #pause-btn {
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+  }
+
+  #overlay h2 {
+    font-size: 24px;
   }
 }

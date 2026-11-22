@@ -2,10 +2,21 @@ import * as THREE from "three";
 import "./style.css";
 import { resetBullets, shoot, updateBullets } from "./bullets.js";
 import { activateZombies, getKills, resetZombies, updateZombies } from "./zombies.js";
-import { initAudio, playDeath, playHop, playLand, playSplash, updateAmbience } from "./sounds.js";
+import {
+  initAudio,
+  pauseAudio,
+  playDeath,
+  playHop,
+  playLand,
+  playRecord,
+  playRespawn,
+  resumeAudio,
+  setAmbienceDuck,
+  updateAmbience,
+} from "./sounds.js";
 import { createPlayer } from "./player.js";
-import { updateHud } from "./hud.js";
-import { initParticles, resetParticles, setParticlePixelRatio, updateParticles } from "./particles.js";
+import { beginRun, bindHudActions, hideOverlay, showOverlay, updateHud } from "./hud.js";
+import { emit, initParticles, resetParticles, setParticlePixelRatio, updateParticles } from "./particles.js";
 import { getDaylight, initLighting, resetLighting, updateLighting } from "./lighting.js";
 import {
   getRowInfo,
@@ -139,6 +150,7 @@ function resetGame() {
   queued = null;
   riding = null;
   player.position.set(0, PLAYER_HEIGHT / 2, 0);
+  player.rotation.set(0, 0, 0);
   focus.set(0, 0, 0);
   updateRows(cell.z);
 }
@@ -168,13 +180,102 @@ const directions = {
   d: "right",
 };
 
+// ---------------------------------------------------------------------------------------------
+// Estados do jogo: "playing" (jogando), "paused" (pausado) e "dead" (morreu, esperando renascer).
+// ---------------------------------------------------------------------------------------------
+let state = "playing";
+let needsRender = false; // pausado: só redesenha quando a janela muda de tamanho
+let deadAt = 0;
+let deathKind = "zombie";
+let deathT = 0;
+let deathFromY = 0;
+const RESPAWN_DELAY = 800; // ms: evita renascer sem querer com teclas ainda apertadas na hora da morte
+const DEATH_TEXT = {
+  zombie: "Os zumbis te pegaram!",
+  water: "Você se afogou!",
+};
+
+function die(kind) {
+  if (state !== "playing") return;
+  state = "dead";
+  deadAt = performance.now();
+  deathKind = kind;
+  deathT = 0;
+  deathFromY = player.position.y;
+  hop = null;
+  queued = null;
+  riding = null;
+  pressed.clear();
+
+  const distance = Math.max(0, -bestZ);
+  const kills = getKills();
+  emit(player.position.x, 0.5, player.position.z, kind === "water" ? "#5ec2e8" : "#7a1f1f", 12, 3);
+  playDeath(kind);
+  setAmbienceDuck(0.35);
+
+  const record = showOverlay("dead", { distance, kills, text: DEATH_TEXT[kind], lockMs: RESPAWN_DELAY });
+  if (record) setTimeout(() => state === "dead" && playRecord(), 700);
+}
+
+// Personagem cai de lado (zumbi) ou afunda (água) enquanto o jogo está parado na tela de morte.
+function animateDeath(delta) {
+  deathT = Math.min(deathT + delta / 0.55, 1);
+  const e = 1 - (1 - deathT) ** 3;
+  if (deathKind === "water") {
+    player.position.y = THREE.MathUtils.lerp(deathFromY, -0.7, e);
+  } else {
+    player.rotation.z = -e * Math.PI * 0.48;
+    player.position.y = THREE.MathUtils.lerp(deathFromY, 0.3, e);
+  }
+}
+
+function respawn() {
+  if (state !== "dead" || performance.now() - deadAt < RESPAWN_DELAY) return;
+  resetGame();
+  state = "playing";
+  hideOverlay();
+  beginRun();
+  setAmbienceDuck(1);
+  playRespawn();
+}
+
+function setPaused(next) {
+  if (state === "dead" || next === (state === "paused")) return;
+  state = next ? "paused" : "playing";
+  pressed.clear();
+  if (next) {
+    showOverlay("pause");
+    pauseAudio();
+  } else {
+    hideOverlay();
+    resumeAudio();
+  }
+}
+
 const clock = new THREE.Clock();
 
 function animate() {
   requestAnimationFrame(animate);
   const rawDelta = clock.getDelta();
   const delta = Math.min(rawDelta, 0.05);
+
+  if (state === "paused") {
+    if (needsRender) {
+      renderer.render(scene, camera);
+      needsRender = false;
+    }
+    return;
+  }
+
   adaptResolution(rawDelta);
+
+  if (state === "dead") {
+    updateParticles(delta);
+    animateDeath(delta);
+    updateAmbience(getDaylight());
+    renderer.render(scene, camera);
+    return;
+  }
 
   updateLogs(delta);
   updateWater(delta);
@@ -186,16 +287,14 @@ function animate() {
     playerBoxSize,
   );
   if (updateZombies(delta, scene, player, playerBox)) {
-    playDeath();
-    resetGame();
+    die("zombie");
     return;
   }
 
   if (!hop && riding) {
     player.position.x = riding.log.x + riding.offset;
     if (Math.abs(player.position.x) > MAX_CELL_X + 0.5) {
-      playSplash();
-      resetGame();
+      die("water");
       return;
     }
   }
@@ -220,8 +319,7 @@ function animate() {
           (l) => Math.abs(player.position.x - l.x) <= l.len / 2 + 0.2,
         );
         if (!log) {
-          playSplash();
-          resetGame();
+          die("water");
           return;
         }
         riding = { log, offset: player.position.x - log.x };
@@ -260,6 +358,28 @@ function animate() {
 }
 
 document.addEventListener("keydown", (event) => {
+  const key = event.key.toLowerCase();
+
+  if (key === "p" || key === "escape") {
+    event.preventDefault();
+    if (!event.repeat) setPaused(state === "playing");
+    return;
+  }
+  if (state === "dead") {
+    if (key === "enter" || key === "r") {
+      event.preventDefault();
+      if (!event.repeat) respawn();
+    }
+    return;
+  }
+  if (state === "paused") {
+    if (key === "enter") {
+      event.preventDefault();
+      if (!event.repeat) setPaused(false);
+    }
+    return;
+  }
+
   if (event.code === "Space") {
     event.preventDefault();
     shoot(scene, player, vectors[facing]);
@@ -283,6 +403,7 @@ document.addEventListener("keyup", (event) => {
 window.addEventListener("blur", () => pressed.clear());
 
 window.addEventListener("resize", () => {
+  needsRender = true;
   const aspect = arenaRoot.clientWidth / arenaRoot.clientHeight;
   const halfHeight = Math.max(
     ARENA_HALF_SIZE * 1.2,
@@ -295,6 +416,16 @@ window.addEventListener("resize", () => {
   camera.updateProjectionMatrix();
   applyPixelRatio();
   renderer.setSize(arenaRoot.clientWidth, arenaRoot.clientHeight);
+});
+
+bindHudActions({
+  togglePause: () => setPaused(state === "playing"),
+  respawn,
+});
+
+// Trocou de aba ou minimizou: pausa sozinho para você não morrer sem ver.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && state === "playing") setPaused(true);
 });
 
 window.dispatchEvent(new Event("resize"));
