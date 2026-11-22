@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import "./style.css";
 import { resetBullets, shoot, updateBullets } from "./bullets.js";
-import { getKills, resetZombies, updateZombies } from "./zombies.js";
+import { activateZombies, getKills, resetZombies, updateZombies } from "./zombies.js";
 import { initAudio, playDeath, playHop, playLand, playSplash, updateAmbience } from "./sounds.js";
 import { createPlayer } from "./player.js";
 import { updateHud } from "./hud.js";
@@ -96,6 +96,7 @@ function startHop(dir, duration = HOP_TIME) {
   if (isBlocked(toX, toZ)) return;
   riding = null;
   hop = { fromX: player.position.x, fromZ: cell.z, toX, toZ, t: 0, duration };
+  activateZombies();
   playHop();
 }
 

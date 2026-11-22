@@ -54,6 +54,11 @@ export const zombies = [];
 export const hitboxes = [];
 let zombieTimer = ZOMBIE_SPAWN_INTERVAL;
 let kills = 0;
+let active = false;
+
+export function activateZombies() {
+  active = true;
+}
 
 export function getKills() {
   return kills;
@@ -225,13 +230,15 @@ function animateZombie(zombie, dx, dz, delta) {
 }
 
 export function updateZombies(delta, scene, player, playerBox) {
-  updateRoads(delta, scene, player);
+    if (active) {
+    updateRoads(delta, scene, player);
 
-  zombieTimer -= delta;
-  const chasers = zombies.reduce((n, zombie) => n + (zombie.crossDir ? 0 : 1), 0);
-  if (zombieTimer <= 0 && chasers < MAX_ZOMBIES) {
-    zombieTimer = ZOMBIE_SPAWN_INTERVAL;
-    spawnZombie(scene, player);
+    zombieTimer -= delta;
+    const chasers = zombies.reduce((n, zombie) => n + (zombie.crossDir ? 0 : 1), 0);
+    if (zombieTimer <= 0 && chasers < MAX_ZOMBIES) {
+      zombieTimer = ZOMBIE_SPAWN_INTERVAL;
+      spawnZombie(scene, player);
+    }
   }
 
   for (let i = zombies.length - 1; i >= 0; i--) {
@@ -277,4 +284,5 @@ export function resetZombies(scene) {
   while (zombies.length) removeZombie(scene, zombies.length - 1);
   zombieTimer = ZOMBIE_SPAWN_INTERVAL;
   kills = 0;
+  active = false;
 }
