@@ -109,6 +109,6 @@ export function updateLighting(delta, focus, playerPosition) {
   sun.target.position.set(focus.x, 0, focus.z);
 
   flash = Math.max(0, flash - delta * 9);
-  lantern.position.set(playerPosition.x, 1.6, playerPosition.z);
+  lantern.position.set(playerPosition.x, 2.2, playerPosition.z + 0.8);
   lantern.intensity = n * LANTERN_INTENSITY + flash * FLASH_INTENSITY;
 }

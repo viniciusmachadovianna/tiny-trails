@@ -9,7 +9,7 @@ const BULLET_SPEED = 18;
 const BULLET_RANGE = 12;
 const SHOOT_COOLDOWN = 0.25;
 const AIM_ASSIST_COS = Math.cos(THREE.MathUtils.degToRad(30));
-const AIM_TURN_SPEED = 10;
+const AIM_TURN_SPEED = 15;
 
 const bulletGeo = new THREE.BoxGeometry(0.15, 0.15, 0.5);
 const bulletMat = new THREE.MeshBasicMaterial({ color: "#ffd23f" });

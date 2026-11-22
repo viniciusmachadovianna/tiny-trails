@@ -1,8 +1,7 @@
 import * as THREE from "three";
-import { playGroan, playHordeAlarm } from "./sounds.js";
+import { playGroan } from "./sounds.js";
 import { emit } from "./particles.js";
 import { getRowInfo, MAX_CELL_X } from "./world.js";
-import { showMessage } from "./hud.js";
 import { mergeBoxes, vertexColorBasicMaterial, vertexColorMaterial } from "./merge.js";
 
 const ZOMBIE_SPEED_MIN = 1.2;
@@ -20,7 +19,6 @@ const SINGLE_INTERVAL_MIN = 2.5;
 const SINGLE_INTERVAL_MAX = 5;
 const HORDE_INTERVAL_MIN = 10;
 const HORDE_INTERVAL_MAX = 18;
-const HORDE_WARNING_TIME = 2;
 
 const skinColor = "#86b35e";
 const skinMat = new THREE.MeshLambertMaterial({ color: skinColor });
@@ -177,18 +175,9 @@ function updateRoads(delta, scene, player) {
 
   for (const road of roads) {
     if (road.timer === undefined) {
-      road.timer = road.big ? 4 + Math.random() * 6 : 1 + Math.random() * 3;
+      road.timer = road.big ? 2 + Math.random() * 3 : 1 + Math.random() * 3;
     }
     road.timer -= delta;
-
-    if (road.big && !road.warned && road.timer <= HORDE_WARNING_TIME) {
-      road.warned = true;
-      const ahead = road.rows.some((z) => z < pz && z >= pz - 12);
-      if (ahead) {
-        showMessage("⚠ Horda cruzando a rua!", 3);
-        playHordeAlarm();
-      }
-    }
 
     if (road.timer > 0) continue;
 
@@ -230,7 +219,7 @@ function animateZombie(zombie, dx, dz, delta) {
 }
 
 export function updateZombies(delta, scene, player, playerBox) {
-    if (active) {
+  if (active) {
     updateRoads(delta, scene, player);
 
     zombieTimer -= delta;
