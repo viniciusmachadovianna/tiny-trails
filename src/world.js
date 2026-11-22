@@ -5,7 +5,7 @@ export const MAX_CELL_X = 10;
 export const ROW_WIDTH = 60;
 export const WRAP = ROW_WIDTH / 2;
 const ROW_AHEAD = 25;
-const ROW_BEHIND = 15;
+const ROW_BEHIND = 25;
 
 let scene = null;
 export const rows = new Map();
