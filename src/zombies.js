@@ -108,6 +108,7 @@ function makeZombie(scene, x, z) {
     speed: ZOMBIE_SPEED_MIN + Math.random() * (ZOMBIE_SPEED_MAX - ZOMBIE_SPEED_MIN),
     walk: Math.random() * 6,
     crossDir: 0,
+    groanTimer: 4 + Math.random() * 8,
   };
   parts.hitbox.userData.zombie = zombie;
   parts.root.updateMatrixWorld(true);
@@ -118,12 +119,10 @@ function makeZombie(scene, x, z) {
 
 function spawnZombie(scene, player) {
   const angle = Math.random() * Math.PI * 2;
-  makeZombie(
-    scene,
-    player.position.x + Math.cos(angle) * ZOMBIE_SPAWN_DISTANCE,
-    player.position.z + Math.sin(angle) * ZOMBIE_SPAWN_DISTANCE,
-  );
-  if (Math.random() < 0.4) playGroan();
+  const x = player.position.x + Math.cos(angle) * ZOMBIE_SPAWN_DISTANCE;
+  const z = player.position.z + Math.sin(angle) * ZOMBIE_SPAWN_DISTANCE;
+  makeZombie(scene, x, z);
+  if (Math.random() < 0.4) playGroan(x, z);
 }
 
 export function removeZombie(scene, index) {
@@ -246,6 +245,12 @@ export function updateZombies(delta, scene, player, playerBox) {
     if (far) {
       removeZombie(scene, i);
       continue;
+    }
+
+    zombie.groanTimer -= delta;
+    if (zombie.groanTimer <= 0) {
+      zombie.groanTimer = 6 + Math.random() * 9;
+      if (dist < 15) playGroan(pos.x, pos.z);
     }
 
     if (zombie.crossDir) {

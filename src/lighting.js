@@ -33,6 +33,7 @@ let sun = null;
 let lantern = null;
 let time = 0;
 let flash = 0;
+let currentDaylight = 1;
 
 export function initLighting(targetScene) {
   scene = targetScene;
@@ -72,6 +73,10 @@ sun.shadow.camera.updateProjectionMatrix();
   scene.add(hemisphere, sun, sun.target, lantern);
 }
 
+export function getDaylight() {
+  return currentDaylight;
+}
+
 export function muzzleFlash() {
   flash = 1;
 }
@@ -87,6 +92,7 @@ export function updateLighting(delta, focus, playerPosition) {
   const raw = 0.5 + 0.5 * Math.cos(phase * Math.PI * 2);
   const daylight = THREE.MathUtils.smoothstep(raw, 0.2, 0.8);
   const n = 1 - daylight;
+  currentDaylight = daylight;
 
   scene.background.lerpColors(day.bg, night.bg, n);
   fog.color.copy(scene.background);

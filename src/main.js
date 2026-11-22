@@ -2,11 +2,11 @@ import * as THREE from "three";
 import "./style.css";
 import { resetBullets, shoot, updateBullets } from "./bullets.js";
 import { getKills, resetZombies, updateZombies } from "./zombies.js";
-import { playDeath, playHop, playSplash } from "./sounds.js";
+import { initAudio, playDeath, playHop, playLand, playSplash, updateAmbience } from "./sounds.js";
 import { createPlayer } from "./player.js";
 import { updateHud } from "./hud.js";
 import { initParticles, resetParticles, updateParticles } from "./particles.js";
-import { initLighting, resetLighting, updateLighting } from "./lighting.js";
+import { getDaylight, initLighting, resetLighting, updateLighting } from "./lighting.js";
 import {
   getRowInfo,
   initWorld,
@@ -48,6 +48,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 arenaRoot.appendChild(renderer.domElement);
 
 initLighting(scene);
+initAudio(camera, scene);
 initParticles(scene);
 initWorld(scene);
 const focus = new THREE.Vector3(0, 0, 0);
@@ -166,6 +167,7 @@ function animate() {
         }
         riding = { log, offset: player.position.x - log.x };
       }
+      playLand(info.type === "river" ? "log" : info.type);
 
       if (queued) {
         const d = queued;
@@ -192,6 +194,7 @@ function animate() {
   focus.z += (player.position.z - focus.z) * follow;
   camera.position.set(focus.x + 14, 20, focus.z + 14);
   updateLighting(delta, focus, player.position);
+  updateAmbience(getDaylight());
   updateHud(Math.max(0, -bestZ), getKills());
 
   renderer.render(scene, camera);

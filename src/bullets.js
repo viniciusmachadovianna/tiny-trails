@@ -3,7 +3,7 @@ import { hitboxes, killZombie, zombies } from "./zombies.js";
 import { rows } from "./world.js";
 import { emit } from "./particles.js";
 import { muzzleFlash } from "./lighting.js";
-import { playShoot, playZombieHit } from "./sounds.js";
+import { playClank, playShoot, playTreeHit, playZombieHit } from "./sounds.js";
 
 const BULLET_SPEED = 18;
 const BULLET_RANGE = 12;
@@ -113,7 +113,7 @@ export function updateBullets(delta, scene) {
     const hits = raycaster.intersectObjects(hitboxes, false);
     if (hits.length > 0) {
       const zombie = hits[0].object.userData.zombie;
-      playZombieHit();
+      playZombieHit(zombie.mesh.position.x, zombie.mesh.position.z);
       killZombie(scene, zombie);
       removeBullet(scene, i);
       continue;
@@ -130,6 +130,8 @@ export function updateBullets(delta, scene) {
     if (row && row.userData.info.trees.has(cellX)) {
       const isCar = row.userData.info.carCells.has(cellX);
       emit(bx, isCar ? 0.5 : 0.6, bz, isCar ? "#ffd23f" : "#3f9b4a", 4, 2);
+      if (isCar) playClank(bx, bz);
+      else playTreeHit(bx, bz);
       removeBullet(scene, i);
     } else if (bullet.traveled >= BULLET_RANGE) {
       removeBullet(scene, i);
