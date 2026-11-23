@@ -31,8 +31,8 @@ import {
 
 const ARENA_HALF_SIZE = 8;
 const PLAYER_HEIGHT = 0.5;
-const HOP_TIME = 0.16;
-const HOP_TIME_HELD = 0.28;
+const HOP_TIME = 0.22;
+const HOP_TIME_HELD = 0.36;
 const HOP_HEIGHT = 0.45;
 const MAX_BACK = 4;
 
