@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { playGroan } from "./sounds.js";
+import { getDaylight } from "./lighting.js";
 import { emit } from "./particles.js";
 import { getRowInfo, MAX_CELL_X } from "./world.js";
 import { mergeBoxes, vertexColorBasicMaterial, vertexColorMaterial } from "./merge.js";
@@ -10,6 +11,7 @@ const ZOMBIE_SPAWN_DISTANCE = 11;
 const ZOMBIE_DESPAWN_DISTANCE = 20;
 const ZOMBIE_SPAWN_INTERVAL = 1.5;
 const MAX_ZOMBIES = 12;
+const NIGHT_SPEED_BONUS = 0.35;
 
 const CROSS_START_X = MAX_CELL_X + 6;
 const CROSS_END_X = MAX_CELL_X + 8;
@@ -204,7 +206,7 @@ function updateRoads(delta, scene, player) {
 }
 
 function animateZombie(zombie, dx, dz, delta) {
-  zombie.walk += delta * zombie.speed * 5;
+  zombie.walk += delta * zombie.currentSpeed * 5;
   const swing = Math.sin(zombie.walk);
   zombie.legs[0].rotation.x = swing * 0.7;
   zombie.legs[1].rotation.x = -swing * 0.7;
@@ -230,8 +232,11 @@ export function updateZombies(delta, scene, player, playerBox) {
     }
   }
 
+  const speedScale = 1 + NIGHT_SPEED_BONUS * (1 - getDaylight());
+
   for (let i = zombies.length - 1; i >= 0; i--) {
     const zombie = zombies[i];
+    zombie.currentSpeed = zombie.speed * speedScale;
     const pos = zombie.mesh.position;
     const dx = player.position.x - pos.x;
     const dz = player.position.z - pos.z;
@@ -250,15 +255,15 @@ export function updateZombies(delta, scene, player, playerBox) {
     }
 
     if (zombie.crossDir) {
-      pos.x += zombie.crossDir * zombie.speed * delta;
+      pos.x += zombie.crossDir * zombie.currentSpeed * delta;
       animateZombie(zombie, zombie.crossDir, 0, delta);
       if (pos.x * zombie.crossDir > CROSS_END_X) {
         removeZombie(scene, i);
         continue;
       }
     } else {
-      pos.x += (dx / dist) * zombie.speed * delta;
-      pos.z += (dz / dist) * zombie.speed * delta;
+      pos.x += (dx / dist) * zombie.currentSpeed * delta;
+      pos.z += (dz / dist) * zombie.currentSpeed * delta;
       animateZombie(zombie, dx, dz, delta);
     }
 
