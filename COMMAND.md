@@ -1,6 +1,6 @@
 # Comando do exercício
 
-Objetivo:Desenvolver um jogo digital completo utilizando a ferramenta definida para o grupo, aplicando conceitos de design, programação, jogabilidade e experiência do usuário.
+Objetivo: Desenvolver um jogo digital completo utilizando a ferramenta definida para o grupo, aplicando conceitos de design, programação, jogabilidade e experiência do usuário.
 
 Prazo de Entrega:
 

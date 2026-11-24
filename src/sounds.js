@@ -199,33 +199,6 @@ function makeGroan(base, glide, duration) {
   });
 }
 
-// Mergulho: tapa na água + "plunk" grave + ondas + bolhas subindo de tom.
-function makeSplash() {
-  const water = lowpass(2800);
-  const slosh = lowpass(700);
-  const bubbles = [
-    [0.06, 380],
-    [0.14, 520],
-    [0.23, 450],
-    [0.33, 610],
-    [0.45, 500],
-    [0.58, 680],
-  ];
-  return render(0.95, (t) => {
-    const slap = water(rand()) * Math.min(1, t / 0.012) * Math.exp(-t * 7);
-    const plunk = Math.sin(sweep(110, 330, 13, t)) * Math.exp(-t * 9) * 0.8;
-    const wash = slosh(rand()) * Math.min(1, t / 0.08) * Math.exp(-t * 4) * 0.5;
-    let b = 0;
-    for (const [start, freq] of bubbles) {
-      if (t > start) {
-        const dt = t - start;
-        b += Math.sin(TAU * freq * dt * (1 + dt * 4)) * Math.exp(-dt * 40) * 0.3;
-      }
-    }
-    return slap + plunk + wash + b;
-  });
-}
-
 // Morte por zumbi: pancada grave + três mordidas crocantes + rosnado que cai de tom.
 function makeDeath() {
   const tone = lowpass(900);
@@ -319,18 +292,6 @@ function makeRespawn() {
     },
     { echo: [[0.1, 0.2]] },
   );
-}
-
-function makeAlarm() {
-  const tone = lowpass(2000);
-  let phase = 0;
-  return render(1.68, (t) => {
-    const f = Math.floor(t / 0.28) % 2 === 0 ? 560 : 420;
-    phase += f / sr;
-    const seg = (t % 0.28) / 0.28;
-    const env = Math.min(1, seg * 20) * Math.min(1, (1 - seg) * 20);
-    return tone(saw(phase)) * env;
-  });
 }
 
 function makeTreeHit() {
@@ -630,7 +591,6 @@ export function playSplash() {
 // kind: "zombie" (pego pelos zumbis) ou "water" (afogado). Ambos terminam com a "musiquinha" triste.
 export function playDeath(kind = "zombie") {
   if (kind === "water") {
-    play(buffers.splash, 0.75, 0.04);
     play(buffers.sting, 0.4, 0.02, 0.35);
     return;
   }
@@ -644,10 +604,4 @@ export function playRespawn() {
 
 export function playRecord() {
   play(buffers.record, 0.5, 0);
-}
-
-export function playHordeAlarm() {
-  if (!ready) return;
-  if (!buffers.alarm) buffers.alarm = makeAlarm(); // sob demanda: 1.7 s de áudio que ninguém usava
-  play(buffers.alarm, 0.5, 0);
 }

@@ -6,7 +6,8 @@ Tiny Trails is a small 3D arcade hopping game made with Three.js for a bachelor 
 
 > Tool used: **Three.js**
 
-**Authors (A-z):** /
+**Authors (A-z):**
+
 [Name | GitHub user]
 1. Andrew Húngaro | andrewhungaro42_design
 2. Felipe Augusto | felipesaugusto
@@ -96,7 +97,7 @@ There are no audio files: every sound effect is synthesized in code with the Web
 
 - **Player:** hop and landing sounds (grass, road and log have their own variations), gunshot with echo, pause / resume blips and a respawn chime.
 - **Zombies:** growls, wet hit sounds and a bite on game over. Zombie sounds are positional, so they get louder and pan as zombies get closer.
-- **World:** bullets hitting trees (leaves) or parked cars (metal clank), water splash, plus wind and crickets that change with the time of day.
+- **World:** bullets hitting trees (leaves) or parked cars (metal clank), plus wind and crickets that change with the time of day.
 - **Game over:** a short sad jingle after the death sound, and a bright arpeggio when a record is beaten.
 - **Mix:** a compressor keeps overlapping sounds from clipping, and the ambience gets quieter on the game over screen.
 - **Loading:** sounds are generated in small steps after the page loads so the game does not freeze. A sound that is not ready yet simply does not play.
@@ -125,8 +126,6 @@ There are no audio files: every sound effect is synthesized in code with the Web
 - Shadow quality can be lowered with `SHADOW_MAP_SIZE` in `lighting.js` on weaker GPUs.
 
 # Demonstrations and deploy
-
-## Screenshots and GIFs
 
 ## Screenshots and GIFs
 
