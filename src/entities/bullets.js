@@ -23,6 +23,7 @@ const aimDir = new THREE.Vector3();
 const bullets = [];
 let shootCooldown = 0;
 
+///
 function findTarget(player, dx, dz) {
   let best = null;
   let bestDist = Infinity;
@@ -33,7 +34,6 @@ function findTarget(player, dx, dz) {
       zombie.mesh.position.z - player.position.z,
     );
     const dist = toTarget.length();
-    if (dist < 0.3 || dist > BULLET_RANGE) continue;
     const cos = (toTarget.x * dx + toTarget.z * dz) / dist;
     if (cos < AIM_ASSIST_COS) continue;
     if (dist < bestDist) {

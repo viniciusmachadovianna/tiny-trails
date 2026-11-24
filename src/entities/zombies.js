@@ -240,6 +240,7 @@ function animateZombie(zombie, dx, dz, delta) {
  * @param {THREE.Box3} playerBox Caixa de colisão atualizada do jogador.
  * @returns {boolean} Se algum zumbi colidiu com o jogador.
  */
+///
 export function updateZombies(delta, scene, player, playerBox) {
   if (active) {
     updateRoads(delta, scene, player);

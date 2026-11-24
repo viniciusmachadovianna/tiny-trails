@@ -161,6 +161,7 @@ function placeParkedCar(info) {
   }
 }
 
+///
 function makeInfo(z) {
   if (run.left <= 0) {
     const previous = run.type;
@@ -222,6 +223,7 @@ export function isBlocked(x, z) {
 function createTrees(row, info) {
   const xs = [...info.trees].filter((x) => !info.carCells.has(x));
   if (!xs.length) return;
+  /// https://threejs.org/docs/#InstancedMesh
   const trees = new THREE.InstancedMesh(treeGeo, vertexColorMaterial, xs.length);
   xs.forEach((x, i) => {
     dummy.position.set(x, 0, 0);

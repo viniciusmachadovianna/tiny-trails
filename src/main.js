@@ -151,6 +151,7 @@ function resetGame() {
   updateRows(cell.z);
 }
 
+///
 function startHop(dir, duration = HOP_TIME) {
   const [dx, dz] = vectors[dir];
   const baseX = Math.round(player.position.x);
@@ -246,6 +247,7 @@ function setPaused(next) {
 
 const clock = new THREE.Clock();
 
+///
 function animate() {
   requestAnimationFrame(animate);
   const rawDelta = clock.getDelta();
@@ -293,6 +295,7 @@ function animate() {
 
   if (hop) {
     hop.t = Math.min(hop.t + delta / hop.duration, 1);
+    ///
     const k = hop.t;
     player.position.x = THREE.MathUtils.lerp(hop.fromX, hop.toX, k);
     player.position.z = THREE.MathUtils.lerp(hop.fromZ, hop.toZ, k);
