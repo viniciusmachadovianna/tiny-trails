@@ -80,8 +80,6 @@ const waterTexture = makeTexture(128, 64, (ctx, w, h) => {
   }
 });
 
-// Tronco + copa fundidos em UMA geometria (cores por vértice): metade dos draw calls
-// de árvores, tanto no render normal quanto no mapa de sombras.
 const treeGeo = mergeBoxes([
   { geometry: new THREE.BoxGeometry(0.3, 0.5, 0.3), position: [0, 0.25, 0], color: "#8b5a2b" },
   { geometry: new THREE.BoxGeometry(0.8, 0.9, 0.8), position: [0, 0.95, 0], color: "#3f9b4a" },
@@ -123,6 +121,10 @@ function buildCarGeometry(color) {
 
 const parkedCarGeos = parkedCarColors.map(buildCarGeometry);
 
+/**
+ * Define a cena que receberá as linhas e objetos do mundo.
+ * @param {THREE.Scene} targetScene
+ */
 export function initWorld(targetScene) {
   scene = targetScene;
 }
@@ -193,6 +195,11 @@ function makeInfo(z) {
   return info;
 }
 
+/**
+ * Obtém os dados da linha, gerando as linhas intermediárias se necessário.
+ * @param {number} z Coordenada inteira da linha no eixo Z.
+ * @returns {object} Dados de terreno, obstáculos e objetos da linha.
+ */
 export function getRowInfo(z) {
   if (z >= -1) return START_INFO;
   while (lastGen > z) {
@@ -202,6 +209,12 @@ export function getRowInfo(z) {
   return rowInfo.get(z);
 }
 
+/**
+ * Informa se a célula contém uma árvore ou um carro.
+ * @param {number} x Coordenada inteira no eixo X.
+ * @param {number} z Coordenada inteira no eixo Z.
+ * @returns {boolean}
+ */
 export function isBlocked(x, z) {
   return getRowInfo(z).trees.has(x);
 }
@@ -227,8 +240,6 @@ function writeLogMatrix(mesh, index, log) {
   mesh.setMatrixAt(index, logMatrix);
 }
 
-// Todos os troncos de uma linha de rio viram UM InstancedMesh (antes: 1 Mesh por tronco,
-// ~12 por linha, cada um com draw call próprio + draw call no mapa de sombras).
 function createLogMesh(row, info) {
   if (!info.logs.length) return;
   const mesh = new THREE.InstancedMesh(logGeo, logMat, info.logs.length);
@@ -284,6 +295,10 @@ function disposeRow(row) {
   row.userData.info.logMesh = null;
 }
 
+/**
+ * Mantém as linhas visíveis próximas ao jogador e descarta as distantes.
+ * @param {number} centerZ Linha atual do jogador.
+ */
 export function updateRows(centerZ) {
   const minZ = centerZ - ROW_AHEAD;
   const maxZ = centerZ + ROW_BEHIND;
@@ -298,6 +313,10 @@ export function updateRows(centerZ) {
   }
 }
 
+/**
+ * Move os troncos ativos e atualiza suas malhas instanciadas.
+ * @param {number} delta Tempo desde o último quadro, em segundos.
+ */
 export function updateLogs(delta) {
   for (const row of rows.values()) {
     const info = row.userData.info;
@@ -315,10 +334,15 @@ export function updateLogs(delta) {
   }
 }
 
+/**
+ * Anima o deslocamento da textura da água.
+ * @param {number} delta Tempo desde o último quadro, em segundos.
+ */
 export function updateWater(delta) {
   waterTexture.offset.x += delta * 0.4;
 }
 
+/** Descarta as linhas e reinicia a geração procedural da partida. */
 export function resetWorld() {
   for (const row of rows.values()) disposeRow(row);
   rows.clear();

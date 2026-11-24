@@ -15,7 +15,7 @@ let poolIndex = 0;
 let lastGroan = 0;
 let windGain = null;
 let cricketsGain = null;
-let duck = 1; // 1 = ambiente normal; menor = ambiente mais baixo (ex.: depois de morrer)
+let duck = 1;
 let duckNow = 1;
 const pool = [];
 const buffers = {};
@@ -23,7 +23,6 @@ const buffers = {};
 const rand = () => Math.random() * 2 - 1;
 const saw = (phase) => 2 * (phase - Math.floor(phase)) - 1;
 
-// Fase de um seno cuja frequência cai de (f1 + df) até f1: f(t) = f1 + df·e^(−k·t).
 const sweep = (f1, df, k, t) => TAU * (f1 * t + (df / k) * (1 - Math.exp(-k * t)));
 
 function lowpass(fc) {
@@ -37,8 +36,7 @@ function highpass(fc) {
   return (x) => x - lp(x);
 }
 
-// Filtro passa-banda ressonante (variável de estado). A frequência central pode mudar a cada
-// amostra, o que dá "chiados com timbre" que sobem ou descem (splat, vento, whoosh).
+// água e vento ressoando
 function resonator(q = 3) {
   const damp = 1 / q;
   let low = 0;
@@ -52,7 +50,7 @@ function resonator(q = 3) {
   };
 }
 
-// echo: lista de [atraso em segundos, ganho] — ecos simples que dão "espaço" ao som.
+// ecos de todos os sons
 function render(duration, fn, { loop = false, echo = null } = {}) {
   const length = Math.floor(sr * duration);
   const buffer = ctx.createBuffer(1, length, sr);
@@ -60,7 +58,6 @@ function render(duration, fn, { loop = false, echo = null } = {}) {
   for (let i = 0; i < length; i++) data[i] = fn(i / sr);
   if (echo) {
     const taps = echo.map(([delay, gain]) => [Math.floor(sr * delay), gain]);
-    // De trás pra frente: data[i - atraso] ainda é o som original, então não há eco de eco.
     for (let i = length - 1; i >= 0; i--) {
       for (const [d, g] of taps) if (i >= d) data[i] += data[i - d] * g;
     }
@@ -79,7 +76,7 @@ function render(duration, fn, { loop = false, echo = null } = {}) {
   return buffer;
 }
 
-// Tiro: estalo seco + "corpo" que desce de tom + coice grave + cauda + clique do ferrolho + ecos.
+// Tiro
 function makeShot(v = 0) {
   const crackFilter = highpass(3500);
   const bodyBand = resonator(3);
@@ -107,12 +104,12 @@ function makeHop() {
     const env = Math.sin(Math.PI * Math.min(1, t / 0.11));
     const swoosh = band(low(rand())) * env;
     const sweepTone = Math.sin(TAU * (260 * t + 1300 * t * t)) * env * 0.4;
-    const push = Math.sin(sweep(70, 90, 70, t)) * Math.exp(-t * 55) * 0.5; // "tum" do impulso
+    const push = Math.sin(sweep(70, 90, 70, t)) * Math.exp(-t * 55) * 0.5; // barulho de impulso
     return swoosh + sweepTone + push;
   });
 }
 
-// Duas variações de cada pouso (v = 0 ou 1), pra não soar igual toda hora.
+// som de passo estrada x tronco
 function makeLand(kind, v = 0) {
   const k = 1 + v * 0.14;
   if (kind === "road") {
@@ -147,7 +144,7 @@ function makeLand(kind, v = 0) {
   });
 }
 
-// Acerto no zumbi: estalo + "splat" molhado que desce de tom + pancada grave + gorgolejo.
+// Acerto no zumbi
 function makeZombieHit(v = 0) {
   const crack = highpass(2500);
   const impact = lowpass(800);
@@ -170,8 +167,7 @@ function makeZombieHit(v = 0) {
   );
 }
 
-// Grunhido: harmônicos moldados por "vogais" (formantes) que escorregam durante o som,
-// com vibrato duplo e "voz rascante" (fry) para soar mais podre.
+// Grunhidos
 function makeGroan(base, glide, duration) {
   const rasp = lowpass(2500);
   const weights = new Float32Array(12);
@@ -199,7 +195,7 @@ function makeGroan(base, glide, duration) {
   });
 }
 
-// Morte por zumbi: pancada grave + três mordidas crocantes + rosnado que cai de tom.
+// Morte por zumbi
 function makeDeath() {
   const tone = lowpass(900);
   const rumble = lowpass(600);
@@ -221,7 +217,7 @@ function makeDeath() {
   );
 }
 
-// Fim de jogo: três notas descendo (sol, mi, dó), a última com vibrato — um "uóm-uóm-uóóóm" triste.
+// Fim de jogo
 function makeSting() {
   const notes = [
     [392, 0, 0.3],
@@ -243,7 +239,6 @@ function makeSting() {
   });
 }
 
-// Novo recorde: arpejo curto e brilhante (dó, mi, sol, dó).
 function makeRecord() {
   const notes = [523.25, 659.25, 783.99, 1046.5];
   return render(
@@ -262,7 +257,7 @@ function makeRecord() {
   );
 }
 
-// Bip do botão de pausa (cai de tom) e de continuar (sobe de tom).
+// Botão pausa
 function makeBlip(from, to) {
   const lp = lowpass(3000);
   const dur = 0.14;
@@ -274,7 +269,7 @@ function makeBlip(from, to) {
   });
 }
 
-// Renascer: "whoosh" que sobe + três notas de sino em acorde maior.
+// Renascer, 3 sininhos
 function makeRespawn() {
   const air = resonator(1.8);
   const lp = lowpass(4000);
@@ -357,9 +352,6 @@ function makeCrickets() {
   );
 }
 
-// Os sons são sintetizados por código (~30 s de áudio, com 12 senoides por amostra nos grunhidos).
-// Fazer tudo de uma vez no carregamento trava a página; aqui cada som roda numa tarefa própria,
-// deixando o navegador desenhar entre elas. Sons ainda não prontos simplesmente não tocam.
 function addTo(key, make) {
   if (!buffers[key]) buffers[key] = [];
   buffers[key].push(make());
@@ -423,6 +415,11 @@ function startLoop(buffer) {
   return gain;
 }
 
+/**
+ * Configura o áudio espacial e inicia a geração incremental dos sons.
+ * @param {THREE.Camera} camera
+ * @param {THREE.Scene} scene
+ */
 export function initAudio(camera, scene) {
   if (ready) return;
   ctx = THREE.AudioContext.getContext();
@@ -470,11 +467,18 @@ export function toggleMute() {
   showMessage(muted ? "🔇 Som desligado (M)" : "🔊 Som ligado (M)", 1.5);
 }
 
-// Ambiente (vento e grilos). `duck` abaixa o volume de forma suave, ex.: na tela de morte.
+/**
+ * Define o volume relativo da ambientação; 1 é normal e 0 é silencioso.
+ * @param {number} value
+ */
 export function setAmbienceDuck(value) {
   duck = value;
 }
 
+/**
+ * Vento e grilos conforme a luz do dia (0 a 1).
+ * @param {number} daylight
+ */
 export function updateAmbience(daylight) {
   if (!ready) return;
   duckNow += (duck - duckNow) * 0.08;
@@ -482,7 +486,6 @@ export function updateAmbience(daylight) {
   if (cricketsGain) cricketsGain.gain.value = 0.06 * Math.pow(1 - daylight, 1.5) * duckNow;
 }
 
-// Pausa de verdade: toca o bipe e então suspende o AudioContext (some tudo, inclusive vento e grilos).
 export function pauseAudio() {
   if (!ready) return;
   paused = true;
@@ -550,6 +553,10 @@ export function playHop() {
   play(buffers.hop, 0.3);
 }
 
+/**
+ * Toca a variação de pouso correspondente ao terreno.
+ * @param {"grass" | "road" | "log"} kind Tipo de superfície.
+ */
 export function playLand(kind) {
   if (!ready) return;
   const land = buffers.land;
@@ -588,7 +595,10 @@ export function playSplash() {
   play(buffers.splash, 0.7);
 }
 
-// kind: "zombie" (pego pelos zumbis) ou "water" (afogado). Ambos terminam com a "musiquinha" triste.
+/**
+ * Toca o efeito de morte adequado à causa: "zombie" ou "water".
+ * @param {"zombie" | "water"} [kind="zombie"]
+ */
 export function playDeath(kind = "zombie") {
   if (kind === "water") {
     play(buffers.sting, 0.4, 0.02, 0.35);

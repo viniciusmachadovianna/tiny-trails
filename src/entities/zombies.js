@@ -56,10 +56,12 @@ let zombieTimer = ZOMBIE_SPAWN_INTERVAL;
 let kills = 0;
 let active = false;
 
+/** Habilita o surgimento de zumbis perseguidores e o movimento dos que cruzam estradas. */
 export function activateZombies() {
   active = true;
 }
 
+/** Retorna o total de zumbis eliminados na partida atual. */
 export function getKills() {
   return kills;
 }
@@ -130,6 +132,11 @@ function spawnZombie(scene, player) {
   if (Math.random() < 0.4) playGroan(x, z);
 }
 
+/**
+ * Remove um zumbi e sua hitbox pelos índices correspondentes nas listas internas.
+ * @param {THREE.Scene} scene
+ * @param {number} index Índice do zumbi nas listas internas.
+ */
 export function removeZombie(scene, index) {
   if (index < 0) return;
   scene.remove(zombies[index].mesh);
@@ -137,6 +144,11 @@ export function removeZombie(scene, index) {
   hitboxes.splice(index, 1);
 }
 
+/**
+ * Registra a eliminação, emite partículas e remove o zumbi da cena.
+ * @param {THREE.Scene} scene
+ * @param {object} zombie Zumbi ativo nesta cena.
+ */
 export function killZombie(scene, zombie) {
   kills++;
   const pos = zombie.mesh.position;
@@ -220,6 +232,14 @@ function animateZombie(zombie, dx, dz, delta) {
   zombie.mesh.rotation.y += diff * Math.min(1, delta * 8);
 }
 
+/**
+ * Atualiza zumbis e verifica colisão com o jogador.
+ * @param {number} delta Tempo desde o último quadro, em segundos.
+ * @param {THREE.Scene} scene
+ * @param {THREE.Object3D} player
+ * @param {THREE.Box3} playerBox Caixa de colisão atualizada do jogador.
+ * @returns {boolean} Se algum zumbi colidiu com o jogador.
+ */
 export function updateZombies(delta, scene, player, playerBox) {
   if (active) {
     updateRoads(delta, scene, player);
@@ -274,6 +294,7 @@ export function updateZombies(delta, scene, player, playerBox) {
   return false;
 }
 
+/** Remove todos os zumbis e reinicia contagem e estado de surgimento. */
 export function resetZombies(scene) {
   while (zombies.length) removeZombie(scene, zombies.length - 1);
   zombieTimer = ZOMBIE_SPAWN_INTERVAL;

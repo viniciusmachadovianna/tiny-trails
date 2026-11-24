@@ -8,6 +8,11 @@ const normalMatrix = new THREE.Matrix3();
 const vector = new THREE.Vector3();
 const tint = new THREE.Color();
 
+/**
+ * Combina geometrias com transformações e cores em uma única BufferGeometry.
+ * @param {{geometry: THREE.BufferGeometry, position: [number, number, number], color: THREE.ColorRepresentation}[]} parts
+ * @returns {THREE.BufferGeometry}
+ */
 export function mergeBoxes(parts) {
   const positions = [];
   const normals = [];

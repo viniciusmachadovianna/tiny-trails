@@ -26,15 +26,31 @@ const material = new THREE.PointsMaterial({
 const points = new THREE.Points(geometry, material);
 points.frustumCulled = false;
 
+/**
+ * Adiciona o sistema de partículas à cena.
+ * @param {THREE.Scene} scene
+ */
 export function initParticles(scene) {
   scene.add(points);
 }
 
-// Chamado quando a resolução de renderização muda, para o tamanho (em px de tela) não mudar.
+/**
+ * Ajusta o tamanho em tela das partículas ao pixel ratio do renderizador.
+ * @param {number} ratio Pixel ratio atual do renderizador.
+ */
 export function setParticlePixelRatio(ratio) {
   material.size = 7 * ratio;
 }
 
+/**
+ * Emite partículas a partir de uma posição no mundo.
+ * @param {number} x
+ * @param {number} y
+ * @param {number} z
+ * @param {THREE.ColorRepresentation} color
+ * @param {number} [count=10] Quantidade de partículas.
+ * @param {number} [power=3] Intensidade inicial do espalhamento.
+ */
 export function emit(x, y, z, color, count = 10, power = 3) {
   tmpColor.set(color);
   for (let n = 0; n < count; n++) {
@@ -56,6 +72,10 @@ export function emit(x, y, z, color, count = 10, power = 3) {
   geometry.attributes.color.needsUpdate = true;
 }
 
+/**
+ * Avança partículas ativas.
+ * @param {number} delta Tempo desde o último quadro, em segundos.
+ */
 export function updateParticles(delta) {
   for (let i = 0; i < COUNT; i++) {
     if (life[i] <= 0) continue;
@@ -78,6 +98,7 @@ export function updateParticles(delta) {
   geometry.attributes.position.needsUpdate = true;
 }
 
+/** Oculta todas as partículas ativas. */
 export function resetParticles() {
   life.fill(0);
   for (let i = 0; i < COUNT; i++) positions[i * 3 + 1] = HIDDEN_Y;

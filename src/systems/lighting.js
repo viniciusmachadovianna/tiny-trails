@@ -4,8 +4,6 @@ const DAY_LENGTH = 100;
 const LANTERN_INTENSITY = 28;
 const FLASH_INTENSITY = 45;
 
-// Qualidade das sombras. Se ainda ficar pesado em GPU fraca, 1024 corta o custo do mapa
-// de sombras em 4x (sombras ficam mais "quadradonas").
 const SHADOW_MAP_SIZE = 2048;
 const SHADOW_RANGE = 30;
 
@@ -40,6 +38,10 @@ let time = 0;
 let flash = 0;
 let currentDaylight = 1;
 
+/**
+ * Cria as luzes e a neblina da cena.
+ * @param {THREE.Scene} targetScene
+ */
 export function initLighting(targetScene) {
   scene = targetScene;
   scene.background = day.bg.clone();
@@ -66,6 +68,7 @@ export function initLighting(targetScene) {
   scene.add(hemisphere, sun, sun.target, lantern);
 }
 
+/** Retorna o nível de luz do dia, entre 0 (noite) e 1 (dia). */
 export function getDaylight() {
   return currentDaylight;
 }
@@ -74,11 +77,18 @@ export function muzzleFlash() {
   flash = 1;
 }
 
+/** Reinicia o ciclo de dia/noite e o clarão da arma. */
 export function resetLighting() {
   time = 0;
   flash = 0;
 }
 
+/**
+ * Atualiza o ciclo de luz, acompanha o foco com o sol e posiciona a lanterna.
+ * @param {number} delta Tempo desde o último quadro, em segundos.
+ * @param {THREE.Vector3} focus Ponto acompanhado pela câmera.
+ * @param {THREE.Vector3} playerPosition Posição atual do jogador.
+ */
 export function updateLighting(delta, focus, playerPosition) {
   time += delta;
   const phase = (time / DAY_LENGTH) % 1;

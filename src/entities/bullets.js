@@ -44,6 +44,12 @@ function findTarget(player, dx, dz) {
   return best;
 }
 
+/**
+ * Cria um disparo na direção indicada, com assistência de mira quando disponível.
+ * @param {THREE.Scene} scene
+ * @param {THREE.Group} player
+ * @param {[number, number]} direction Direção no plano XZ.
+ */
 export function shoot(scene, player, direction) {
   if (shootCooldown > 0) return;
   shootCooldown = SHOOT_COOLDOWN;
@@ -96,6 +102,11 @@ function steer(bullet, prevX, prevZ, delta) {
   bullet.mesh.rotation.y = Math.atan2(bullet.dx, bullet.dz);
 }
 
+/**
+ * Atualiza movimento, colisões e tempo de recarga dos disparos.
+ * @param {number} delta Tempo desde o último quadro, em segundos.
+ * @param {THREE.Scene} scene
+ */
 export function updateBullets(delta, scene) {
   shootCooldown = Math.max(0, shootCooldown - delta);
   for (let i = bullets.length - 1; i >= 0; i--) {
@@ -139,6 +150,7 @@ export function updateBullets(delta, scene) {
   }
 }
 
+/** Remove os disparos ativos e zera o tempo de recarga. */
 export function resetBullets(scene) {
   while (bullets.length) removeBullet(scene, bullets.length - 1);
   shootCooldown = 0;

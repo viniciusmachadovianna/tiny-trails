@@ -1,3 +1,4 @@
+/** @file Inicializa a cena, os sistemas do jogo e o loop de animação. */
 import * as THREE from "three";
 import "./ui/style.css";
 import { resetBullets, shoot, updateBullets } from "./entities/bullets.js";
@@ -36,9 +37,6 @@ const HOP_TIME_HELD = 0.36;
 const HOP_HEIGHT = 0.45;
 const MAX_BACK = 4;
 
-// Resolução adaptativa: se o FPS médio cair abaixo de ~40, reduz o pixel ratio em passos de
-// 0.25 (nunca abaixo de 1 pixel CSS). Só desce, nunca sobe sozinha, para não ficar oscilando.
-// Ponha false para desligar.
 const ADAPTIVE_RESOLUTION = true;
 const SLOW_FRAME_TIME = 1 / 40;
 const ADAPT_WINDOW_FRAMES = 60;
@@ -58,8 +56,6 @@ const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
 camera.position.set(14, 20, 14);
 camera.lookAt(0, 0, 0);
 
-// Em telas de DPR >= 2 o MSAA é quase imperceptível, mas multiplica o custo de fill-rate
-// (já são 4x mais pixels). Por isso só liga o antialias em telas de DPR baixo.
 const renderer = new THREE.WebGLRenderer({
   antialias: (window.devicePixelRatio || 1) < 2,
   powerPreference: "high-performance",
@@ -67,7 +63,7 @@ const renderer = new THREE.WebGLRenderer({
 let resolutionSteps = 0;
 let adaptTime = 0;
 let adaptFrames = 0;
-let adaptWarmup = 3; // segundos: ignora o início (compilação de shaders, síntese de áudio)
+let adaptWarmup = 3;
 
 function pixelRatioBounds() {
   const max = Math.min(window.devicePixelRatio || 1, 2);
@@ -84,7 +80,7 @@ function applyPixelRatio() {
 function adaptResolution(rawDelta) {
   if (!ADAPTIVE_RESOLUTION) return;
   const { max, min } = pixelRatioBounds();
-  if (max - resolutionSteps * RATIO_STEP <= min) return; // já no mínimo
+  if (max - resolutionSteps * RATIO_STEP <= min) return;
   if (document.hidden) {
     adaptTime = 0;
     adaptFrames = 0;
@@ -103,7 +99,7 @@ function adaptResolution(rawDelta) {
   if (average > SLOW_FRAME_TIME) {
     resolutionSteps++;
     applyPixelRatio();
-    adaptWarmup = 1; // deixa o novo framebuffer estabilizar antes de medir de novo
+    adaptWarmup = 1;
   }
 }
 
@@ -180,16 +176,13 @@ const directions = {
   d: "right",
 };
 
-// ---------------------------------------------------------------------------------------------
-// Estados do jogo: "playing" (jogando), "paused" (pausado) e "dead" (morreu, esperando renascer).
-// ---------------------------------------------------------------------------------------------
 let state = "playing";
-let needsRender = false; // pausado: só redesenha quando a janela muda de tamanho
+let needsRender = false; // pausado
 let deadAt = 0;
 let deathKind = "zombie";
 let deathT = 0;
 let deathFromY = 0;
-const RESPAWN_DELAY = 800; // ms: evita renascer sem querer com teclas ainda apertadas na hora da morte
+const RESPAWN_DELAY = 800;
 const DEATH_TEXT = {
   zombie: "Os zumbis te pegaram!",
   water: "Você se afogou!",
@@ -217,7 +210,6 @@ function die(kind) {
   if (record) setTimeout(() => state === "dead" && playRecord(), 700);
 }
 
-// Personagem cai de lado (zumbi) ou afunda (água) enquanto o jogo está parado na tela de morte.
 function animateDeath(delta) {
   deathT = Math.min(deathT + delta / 0.55, 1);
   const e = 1 - (1 - deathT) ** 3;
@@ -423,7 +415,7 @@ bindHudActions({
   respawn,
 });
 
-// Trocou de aba ou minimizou: pausa sozinho para você não morrer sem ver.
+/**Pausa sozinho ao trocar / minimizar aba. */
 document.addEventListener("visibilitychange", () => {
   if (document.hidden && state === "playing") setPaused(true);
 });

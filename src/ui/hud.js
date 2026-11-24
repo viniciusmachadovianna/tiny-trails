@@ -16,11 +16,16 @@ let lastDistance = -1;
 let lastKills = -1;
 let bestDistance = 0;
 let bestKills = 0;
-let startBestDistance = 0; // recordes no começo da partida atual (para saber se bateu algum)
+let startBestDistance = 0;
 let startBestKills = 0;
 let messageTimer = null;
 let bumpTimer = null;
 
+/**
+ * Exibe uma mensagem temporária na interface.
+ * @param {string} text
+ * @param {number} [seconds=2] Duração da mensagem.
+ */
 export function showMessage(text, seconds = 2) {
   messageEl.textContent = text;
   messageEl.classList.toggle("horde-warning", /horda/i.test(text));
@@ -31,6 +36,11 @@ export function showMessage(text, seconds = 2) {
   }, seconds * 1000);
 }
 
+/**
+ * Atualiza pontuação e recordes exibidos durante a partida.
+ * @param {number} distance Distância atual em metros.
+ * @param {number} kills Zumbis eliminados na partida atual.
+ */
 export function updateHud(distance, kills) {
   if (distance !== lastDistance) {
     lastDistance = distance;
@@ -62,14 +72,12 @@ export function updateHud(distance, kills) {
   }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Botão de pausa + tela de pausa / fim de jogo ("Renascer").
-// Tudo é criado por código (como o HUD acima), então não precisa mexer no HTML.
-// ---------------------------------------------------------------------------------------------
-
 const actions = { togglePause() {}, respawn() {} };
 
-// O main.js registra aqui o que cada botão faz.
+/**
+ * Registra os callbacks de pausa e renascimento usados pelos botões da interface.
+ * @param {{togglePause: () => void, respawn: () => void}} next
+ */
 export function bindHudActions(next) {
   Object.assign(actions, next);
 }
@@ -91,7 +99,7 @@ function setPauseButton(paused) {
 }
 setPauseButton(false);
 
-// blur(): sem isso o botão fica com foco e a barra de espaço (tiro) acionaria o botão.
+
 pauseBtn.addEventListener("click", () => {
   pauseBtn.blur();
   actions.togglePause();
@@ -134,14 +142,18 @@ actionBtn.addEventListener("click", () => {
   else actions.togglePause();
 });
 
-// Chamado ao começar uma partida nova (depois de renascer).
+/** Marca o início de uma partida para comparar recordes ao final. */
 export function beginRun() {
   startBestDistance = bestDistance;
   startBestKills = bestKills;
 }
 
-// kind: "pause" ou "dead". Para "dead", data = { distance, kills, text, lockMs }.
-// Devolve true se a partida que acabou bateu algum recorde.
+/**
+ * Exibe a tela de pausa ou de morte.
+ * @param {"pause" | "dead"} kind
+ * @param {{distance?: number, kills?: number, text?: string, lockMs?: number}} [data]
+ * @returns {boolean} Se uma nova pontuação bateu um recorde anterior.
+ */
 export function showOverlay(kind, data = {}) {
   mode = kind;
   clearTimeout(unlockTimer);
@@ -151,7 +163,6 @@ export function showOverlay(kind, data = {}) {
 
   if (kind === "dead") {
     const { distance = 0, kills = 0, text = "", lockMs = 0 } = data;
-    // Só comemora recorde se já existia um recorde anterior para bater.
     const newDistance = startBestDistance > 0 && distance > startBestDistance;
     const newKills = startBestKills > 0 && kills > startBestKills;
     record = newDistance || newKills;
@@ -175,7 +186,6 @@ export function showOverlay(kind, data = {}) {
     badgeEl.hidden = !record;
     actionBtn.textContent = "↻ Renascer";
     hintEl.textContent = "ou aperte Enter / R";
-    // Trava o botão por um instante: quem estava atirando/andando na hora da morte não renasce sem querer.
     actionBtn.disabled = lockMs > 0;
     if (lockMs > 0) {
       unlockTimer = setTimeout(() => {

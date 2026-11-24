@@ -21,6 +21,10 @@ const armGeo = new THREE.BoxGeometry(0.12, 0.26, 0.12).translate(0, -0.13, 0);
 const handGeo = new THREE.BoxGeometry(0.12, 0.08, 0.12).translate(0, -0.26, 0);
 const gunGeo = new THREE.BoxGeometry(0.08, 0.3, 0.1).translate(0, -0.4, 0);
 
+/**
+ * Cria o personagem e suas partes animáveis.
+ * @returns {{root: THREE.Group, model: THREE.Group, legs: THREE.Group[], arms: THREE.Group[]}}
+ */
 export function createPlayer() {
   const root = new THREE.Group();
   const model = new THREE.Group();
