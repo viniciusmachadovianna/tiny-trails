@@ -464,7 +464,7 @@ export function toggleMute() {
   if (!ready) return;
   muted = !muted;
   listener.setMasterVolume(muted ? 0 : 1);
-  showMessage(muted ? "🔇 Som desligado (M)" : "🔊 Som ligado (M)", 1.5);
+  showMessage(muted ? "Som desligado (M)" : "Som ligado (M)", 1.5);
 }
 
 /**

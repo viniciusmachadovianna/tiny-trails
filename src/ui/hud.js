@@ -46,7 +46,7 @@ export function updateHud(distance, kills) {
     lastDistance = distance;
     bestDistance = Math.max(bestDistance, distance);
     distanceEl.innerHTML = `
-      <span class="stat-label">📏 Distância</span>
+      <span class="stat-label">Distância</span>
       <span class="stat-value">${distance} m</span>
       <span class="stat-best">Rec: ${bestDistance} m</span>
     `;
@@ -57,7 +57,7 @@ export function updateHud(distance, kills) {
     lastKills = kills;
     bestKills = Math.max(bestKills, kills);
     killsEl.innerHTML = `
-      <span class="stat-label">🧟 Zumbis mortos</span>
+      <span class="stat-label">Zumbis mortos</span>
       <span class="stat-value">${kills}</span>
       <span class="stat-best">Rec: ${bestKills}</span>
     `;
@@ -172,19 +172,19 @@ export function showOverlay(kind, data = {}) {
     titleEl.textContent = "Você morreu";
     subEl.textContent = text;
     statsEl.innerHTML = `
-      <span class="os-label">📏 Distância</span><strong>${distance} m</strong><em>Rec: ${bestDistance} m</em>
-      <span class="os-label">🧟 Zumbis mortos</span><strong>${kills}</strong><em>Rec: ${bestKills}</em>
+      <span class="os-label">Distância</span><strong>${distance} m</strong><em>Rec: ${bestDistance} m</em>
+      <span class="os-label">Zumbis mortos</span><strong>${kills}</strong><em>Rec: ${bestKills}</em>
     `;
     statsEl.hidden = false;
     badgeEl.textContent = !record
       ? ""
       : newDistance && newKills
-        ? "🏆 Novos recordes!"
+        ? "Novos recordes!"
         : newDistance
-          ? "🏆 Novo recorde de distância!"
-          : "🏆 Novo recorde de zumbis!";
+          ? "Novo recorde de distância!"
+          : "Novo recorde de zumbis!";
     badgeEl.hidden = !record;
-    actionBtn.textContent = "↻ Renascer";
+    actionBtn.textContent = "Renascer";
     hintEl.textContent = "ou aperte Enter / R";
     actionBtn.disabled = lockMs > 0;
     if (lockMs > 0) {
@@ -198,7 +198,7 @@ export function showOverlay(kind, data = {}) {
     subEl.textContent = "O jogo está parado.";
     statsEl.hidden = true;
     badgeEl.hidden = true;
-    actionBtn.textContent = "▶ Continuar";
+    actionBtn.textContent = "Continuar";
     hintEl.textContent = "P, Esc ou Enter para continuar · M liga/desliga o som";
     actionBtn.disabled = false;
     pauseBtn.hidden = false;
