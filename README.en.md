@@ -106,24 +106,19 @@ There are no audio files: every sound effect is synthesized in code with the Web
 
 | File | Role |
 | --- | --- |
-| `main.js` | Game loop, input, game states (playing / paused / dead), camera |
-| `world.js` | Procedural rows: grass, roads, rivers, trees, logs and parked cars |
-| `zombies.js` | Zombie models, spawning (chasers, crossers and hordes), movement and collisions |
-| `bullets.js` | Shooting, aim assist and bullet collisions |
-| `player.js` | Player model |
-| `lighting.js` | Day/night cycle, lantern and muzzle flash |
-| `particles.js` | Particle effects |
-| `sounds.js` | Procedural sound effects and ambience |
-| `hud.js` | HUD, messages, pause button and pause / game over screen |
-| `merge.js` | Helper that merges box geometries to reduce draw calls |
-| `style.css` | Styles for the HUD, pause button and screens |
+| `src/main.js` | Game loop, input, game states (playing / paused / dead), camera |
+| `src/entities/` | Player, zombie and bullet gameplay modules |
+| `src/systems/` | Lighting, particle effects, and procedural audio |
+| `src/ui/` | HUD, messages, pause/game-over screens, and styles |
+| `src/world/` | Procedural world generation and updates |
+| `src/utils/` | Shared helpers such as geometry merging |
 
 ### Performance notes
 
-- Adaptive resolution: if the average frame rate drops, the render resolution is lowered step by step (set `ADAPTIVE_RESOLUTION` to `false` in `main.js` to disable it).
+- Adaptive resolution: if the average frame rate drops, the render resolution is lowered step by step (set `ADAPTIVE_RESOLUTION` to `false` in `src/main.js` to disable it).
 - Trees and logs use instanced meshes, and models are merged into single geometries to reduce draw calls.
 - While paused, the scene is not re-rendered, which saves battery.
-- Shadow quality can be lowered with `SHADOW_MAP_SIZE` in `lighting.js` on weaker GPUs.
+- Shadow quality can be lowered with `SHADOW_MAP_SIZE` in `src/systems/lighting.js` on weaker GPUs.
 
 # Demonstrations and deploy
 

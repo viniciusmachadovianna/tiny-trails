@@ -87,16 +87,11 @@ O build é gerado na pasta `dist`. O navegador só permite iniciar o áudio apó
 | Arquivo | Responsabilidade |
 | --- | --- |
 | `src/main.js` | Loop do jogo, controles, câmera e estados da partida |
-| `src/world.js` | Geração das linhas de campo, estrada e rio |
-| `src/zombies.js` | Zumbis, perseguição, hordas e colisões |
-| `src/bullets.js` | Disparos, assistência de mira e colisões |
-| `src/player.js` | Modelo do personagem |
-| `src/lighting.js` | Ciclo de dia e noite, lanterna e clarão dos disparos |
-| `src/particles.js` | Efeitos de partículas |
-| `src/sounds.js` | Efeitos sonoros e ambientação |
-| `src/hud.js` | Interface, mensagens, pausa e tela de fim de jogo |
-| `src/merge.js` | Utilitário para combinar geometrias |
-| `src/style.css` | Estilos da interface |
+| `src/entities/` | Personagem, zumbis e disparos |
+| `src/systems/` | Iluminação, partículas e áudio |
+| `src/ui/` | HUD, telas e estilos |
+| `src/world/` | Geração e atualização do mundo |
+| `src/utils/` | Utilitários compartilhados, como combinação de geometrias |
 
 ## Imagens
 

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { showMessage } from "./hud.js";
+import { showMessage } from "../ui/hud.js";
 
 const TAU = Math.PI * 2;
 const POOL_SIZE = 10;

@@ -1,9 +1,9 @@
 import * as THREE from "three";
-import { playGroan } from "./sounds.js";
-import { getDaylight } from "./lighting.js";
-import { emit } from "./particles.js";
-import { getRowInfo, MAX_CELL_X } from "./world.js";
-import { mergeBoxes, vertexColorBasicMaterial, vertexColorMaterial } from "./merge.js";
+import { playGroan } from "../systems/sounds.js";
+import { getDaylight } from "../systems/lighting.js";
+import { emit } from "../systems/particles.js";
+import { getRowInfo, MAX_CELL_X } from "../world/world.js";
+import { mergeBoxes, vertexColorBasicMaterial, vertexColorMaterial } from "../utils/merge.js";
 
 const ZOMBIE_SPEED_MIN = 1.2;
 const ZOMBIE_SPEED_MAX = 2;

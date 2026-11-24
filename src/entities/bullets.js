@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import { hitboxes, killZombie, zombies } from "./zombies.js";
-import { rows } from "./world.js";
-import { emit } from "./particles.js";
-import { muzzleFlash } from "./lighting.js";
-import { playClank, playShoot, playTreeHit, playZombieHit } from "./sounds.js";
+import { rows } from "../world/world.js";
+import { emit } from "../systems/particles.js";
+import { muzzleFlash } from "../systems/lighting.js";
+import { playClank, playShoot, playTreeHit, playZombieHit } from "../systems/sounds.js";
 
 const BULLET_SPEED = 18;
 const BULLET_RANGE = 12;

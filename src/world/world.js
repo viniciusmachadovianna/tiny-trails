@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { mergeBoxes, vertexColorMaterial } from "./merge.js";
+import { mergeBoxes, vertexColorMaterial } from "../utils/merge.js";
 
 export const MAX_CELL_X = 10;
 export const ROW_WIDTH = 60;

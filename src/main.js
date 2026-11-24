@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import "./style.css";
-import { resetBullets, shoot, updateBullets } from "./bullets.js";
-import { activateZombies, getKills, resetZombies, updateZombies } from "./zombies.js";
+import "./ui/style.css";
+import { resetBullets, shoot, updateBullets } from "./entities/bullets.js";
+import { activateZombies, getKills, resetZombies, updateZombies } from "./entities/zombies.js";
 import {
   initAudio,
   pauseAudio,
@@ -13,11 +13,11 @@ import {
   resumeAudio,
   setAmbienceDuck,
   updateAmbience,
-} from "./sounds.js";
-import { createPlayer } from "./player.js";
-import { beginRun, bindHudActions, hideOverlay, showOverlay, updateHud } from "./hud.js";
-import { emit, initParticles, resetParticles, setParticlePixelRatio, updateParticles } from "./particles.js";
-import { getDaylight, initLighting, resetLighting, updateLighting } from "./lighting.js";
+} from "./systems/sounds.js";
+import { createPlayer } from "./entities/player.js";
+import { beginRun, bindHudActions, hideOverlay, showOverlay, updateHud } from "./ui/hud.js";
+import { emit, initParticles, resetParticles, setParticlePixelRatio, updateParticles } from "./systems/particles.js";
+import { getDaylight, initLighting, resetLighting, updateLighting } from "./systems/lighting.js";
 import {
   getRowInfo,
   initWorld,
@@ -27,7 +27,7 @@ import {
   updateLogs,
   updateRows,
   updateWater,
-} from "./world.js";
+} from "./world/world.js";
 
 const ARENA_HALF_SIZE = 8;
 const PLAYER_HEIGHT = 0.5;
